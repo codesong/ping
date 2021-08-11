@@ -9,23 +9,26 @@
 #define __MUTEX_H__
 
 #include <pthread.h>
+#include <stdexcept>
+#include <semaphore.h>
+#include "Noncopyable.h"
 
 namespace ping
 {
 
 #define CHECK(condition) \
-    throw std::logic_error("check failed: " #conditon " ");
+    throw std::logic_error("check failed: " #condition)
 
 #define CHECK_RETZERO(FUNC) CHECK(0 == FUNC)
 
 class Mutex: Noncopyable
 {
 public:
-    Mutex() { CHECK(0 == pthread_mutex_init(&m_mutex, nullptr)); }
-    ~Mutex() { CHECK(0 == pthread_mutex_destroy(&m_mutex)); }
+    Mutex() { CHECK_RETZERO(pthread_mutex_init(&m_mutex, nullptr)); }
+    ~Mutex() { pthread_mutex_destroy(&m_mutex); }
 
-    void lock() { CHECK(0 == pthread_mutex_lock(&m_mutex)); }
-    void unlock() { CHECK(0 == pthread_mutex_unlock(&m_mutex)); }
+    void lock() { CHECK_RETZERO(pthread_mutex_lock(&m_mutex)); }
+    void unlock() { CHECK_RETZERO(pthread_mutex_unlock(&m_mutex)); }
 
 private:
     pthread_mutex_t m_mutex;
@@ -43,12 +46,12 @@ private:
 class RWMutex: Noncopyable
 {
 public:
-    RWMutex() { CHECK(0 == pthread_rwlock_init(&m_lock, nullptr)); }
-    ~RWMutex() { CHECK(0 == pthread_rwlock_destroy(&m_lock)); }
+    RWMutex() { CHECK_RETZERO(pthread_rwlock_init(&m_lock, nullptr)); }
+    ~RWMutex() { pthread_rwlock_destroy(&m_lock); }
 
-    void rdlock() { CHECK(0 == pthread_rwlock_rdlock(&m_lock)); }
-    void wrlock() { CHECK(0 == pthread_rwlock_wrlock(&m_lock)); }
-    void unlock() { CHECK(0 == pthread_rwlock_unlock(&m_lock)); }
+    void rdlock() { CHECK_RETZERO(pthread_rwlock_rdlock(&m_lock)); }
+    void wrlock() { CHECK_RETZERO(pthread_rwlock_wrlock(&m_lock)); }
+    void unlock() { CHECK_RETZERO(0 == pthread_rwlock_unlock(&m_lock)); }
 
 private:
     pthread_rwlock_t m_lock;
@@ -75,10 +78,10 @@ private:
 class Spinlock: Noncopyable
 {
 public:
-    Spinlock() { CHECK(0 == pthread_spin_init(&m_spinlock, 0)); }
-    ~Spinlock() { CHECK(0 == pthread_spin_destroy(&m_spinlock)); }
-    void lock() { CHECK(0 == pthread_spin_lock(&m_spinlock)); }
-    void unlock() { CHECK(0 == pthread_spin_unlock(&m_spinlock)); }
+    Spinlock() { CHECK_RETZERO(pthread_spin_init(&m_spinlock, 0)); }
+    ~Spinlock() { pthread_spin_destroy(&m_spinlock); }
+    void lock() { CHECK_RETZERO(pthread_spin_lock(&m_spinlock)); }
+    void unlock() { CHECK_RETZERO(pthread_spin_unlock(&m_spinlock)); }
 
 private:
     pthread_spinlock_t m_spinlock;
@@ -87,10 +90,10 @@ private:
 class Semaphore: Noncopyable
 {
 public:
-    Semaphore(unsigined int count = 0) { CHECK(0 == sem_init(&m_semaphore, 0, count)); }
-    ~Semaphore() { CHECK(0 == sem_destroy(&m_semaphore)); }
+    Semaphore(unsigned int count = 0) { CHECK_RETZERO(sem_init(&m_semaphore, 0, count)); }
+    ~Semaphore() { sem_destroy(&m_semaphore); }
 
-    void wait() { CHECK(0 == sem_wait(&m_semaphore)); }
+    void wait() { CHECK_RETZERO(sem_wait(&m_semaphore)); }
     void notify() { CHECK_RETZERO(sem_post(&m_semaphore)); };
 
 private:
