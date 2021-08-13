@@ -6,6 +6,7 @@
 *************************************************************************/
 
 #include "Util.h"
+#include "Exception.h"
 
 namespace ping
 {
@@ -13,7 +14,7 @@ namespace ping
 thread_local pid_t t_threadId = 0;
 thread_local string t_threadName;
 
-pid_t Util::CurrThreadId()
+pid_t Util::currThreadId()
 {
     if(t_threadId <= 0)
     {
@@ -23,15 +24,26 @@ pid_t Util::CurrThreadId()
     return t_threadId;
 }
 
-const string Util::CurrThreadName()
+const string Util::currThreadName()
 {
     if(t_threadName.empty())
     {
-        pid_t currThreadId = CurrThreadId();
-        t_threadName = "Thread" + std::to_string(currThreadId);
+        pid_t threadId = currThreadId();
+        t_threadName = "Thread" + std::to_string(threadId);
     }
     return t_threadName;
 }
 
+bool Util::isMainThread()
+{
+    return currThreadId() == ::getpid();
+}
+
+TimeStamp Util::currTime()
+{
+    struct timeval tv;
+    CHECK_RETZERO(gettimeofday(&tv, nullptr));
+    return TimeStamp(tv);
+}
 
 } // namespace ping

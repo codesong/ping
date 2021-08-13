@@ -8,6 +8,7 @@
 #include <iostream>
 #include "../src/Mutex.h"
 #include "../src/Thread.h"
+#include "../src/TimeStamp.h"
 
 using namespace ping;
 
@@ -16,6 +17,8 @@ void test_thread()
     for(int i = 0; i < 5; ++i)
     {
         std::cout << "hello codesong!" << std::endl;
+        TimeStamp ts;
+        std::cout << ts.toString(YYYYMMDD) << std::endl;
     }
 }
 

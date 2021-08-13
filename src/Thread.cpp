@@ -11,6 +11,8 @@
 namespace ping
 {
 
+using std::placeholders::_1;
+
 Thread::Thread(ThreadFunc fun, const string &name)
     : m_threadFunc(fun), m_name(name), m_running(false),
       m_pthreadId(0), m_threadId(0){}
@@ -23,7 +25,7 @@ Thread::~Thread()
 void Thread::start()
 {
     m_running = true;
-    CHECK_RETZERO(pthread_create(m_pthreadId, nullptr, &Thread::run, this));
+    CHECK_RETZERO(pthread_create(&m_pthreadId, nullptr, &Thread::run, this));
     m_semaphore.wait(); // 等待一些初始化完成
 }
 
@@ -41,10 +43,10 @@ void Thread::stop()
 void *Thread::run(void *arg)
 {
     Thread *thread = static_cast<Thread *>(arg);
-    m_threadId = Util::CurrThreadId();
+    thread->m_threadId = Util::currThreadId();
 
-    t_threadId = m_threadId;
-    t_threadName = m_name;
+    t_threadId = thread->m_threadId;
+    t_threadName = thread->m_name;
     
     ThreadFunc threadFunc;
     threadFunc.swap(thread->m_threadFunc);

@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
+#include "TimeStamp.h"
 
 namespace ping
 {
@@ -23,8 +24,10 @@ extern thread_local string t_threadName;
 
 namespace Util
 {
-pid_t CurrThreadId();
-const string CurrThreadName();
+    pid_t currThreadId();
+    const string currThreadName();
+    bool isMainThread();
+    TimeStamp currTime();
 
 } // namespace Util
 

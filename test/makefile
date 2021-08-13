@@ -1,5 +1,5 @@
 
-CSRCS = ../src/Util.cpp ../src/Thread.cpp test_thread.cpp 
+CSRCS = ../src/Exception.cpp ../src/Util.cpp ../src/TimeStamp.cpp ../src/Ostream.cpp ../src/Log.cpp ../src/Thread.cpp test_thread.cpp 
 
 CSOBJS=${CSRCS:.cpp=.o}
 OBJS=$(CSOBJS)

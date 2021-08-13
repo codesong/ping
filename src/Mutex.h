@@ -9,17 +9,12 @@
 #define __MUTEX_H__
 
 #include <pthread.h>
-#include <stdexcept>
 #include <semaphore.h>
+#include "Exception.h"
 #include "Noncopyable.h"
 
 namespace ping
 {
-
-#define CHECK(condition) \
-    throw std::logic_error("check failed: " #condition)
-
-#define CHECK_RETZERO(FUNC) CHECK(0 == FUNC)
 
 class Mutex: Noncopyable
 {
@@ -29,6 +24,7 @@ public:
 
     void lock() { CHECK_RETZERO(pthread_mutex_lock(&m_mutex)); }
     void unlock() { CHECK_RETZERO(pthread_mutex_unlock(&m_mutex)); }
+    pthread_mutex_t &rawMutex() { return m_mutex; }
 
 private:
     pthread_mutex_t m_mutex;
