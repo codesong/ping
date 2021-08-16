@@ -19,7 +19,8 @@ Thread::Thread(ThreadFunc fun, const string &name)
 
 Thread::~Thread()
 {
-    stop();
+    if(m_running)
+        stop();
 }
 
 void Thread::start()
@@ -31,13 +32,10 @@ void Thread::start()
 
 void Thread::stop()
 {
-    if(m_running)
-    {
-        m_running = false;
-        pthread_join(m_pthreadId, nullptr);
-        m_threadId = 0;
-        m_pthreadId = 0;
-    }
+    m_running = false;
+    pthread_join(m_pthreadId, nullptr);
+    m_threadId = 0;
+    m_pthreadId = 0;
 }
 
 void *Thread::run(void *arg)

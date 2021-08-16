@@ -1,5 +1,8 @@
 
-CSRCS = ../src/Exception.cpp ../src/Util.cpp ../src/TimeStamp.cpp ../src/Ostream.cpp ../src/Log.cpp ../src/Thread.cpp test_thread.cpp 
+CSRCS = ../src/Exception.cpp ../src/Util.cpp ../src/Timestamp.cpp ../src/Ostream.cpp ../src/Thread.cpp ../src/ThreadPool.cpp \
+	../src/LogFile.cpp ../src/Log.cpp \
+	test_timestamp.cpp
+	#test_thread.cpp 
 
 CSOBJS=${CSRCS:.cpp=.o}
 OBJS=$(CSOBJS)
@@ -12,7 +15,7 @@ all: ${TARGET}
 clean:
 	-rm -rf ../src/*.o
 	-rm -rf *.o
-	-rm -rf a.out
+	-rm -rf ${TARGET}
 
 FLAGS = -pthread
 

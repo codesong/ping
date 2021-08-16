@@ -22,6 +22,11 @@ public:
     void notify() { CHECK_RETZERO(pthread_cond_signal(&m_cond)); }
     void notifyAll() { CHECK_RETZERO(pthread_cond_broadcast(&m_cond)); }
 
+    void wait()
+    {
+        CHECK_RETZERO(pthread_cond_wait(&m_cond, &m_mutex.rawMutex()));
+    }
+
     void timedWait(double seconds)
     {
         struct timespec time;

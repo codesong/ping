@@ -1,25 +1,25 @@
 /*************************************************************************
-* File Name: TimeStamp.cpp
+* File Name: Timestamp.cpp
 * Author: codesong
 * Mail: codesong@qq.com 
 * Created Time: 2021年08月10日 星期二 23时42分56秒
 *************************************************************************/
 
-#include "TimeStamp.h"
+#include "Timestamp.h"
 
 namespace ping
 {
 
-TimeStamp::TimeStamp(int64_t microSecondsSinceEpoch)
+Timestamp::Timestamp(int64_t microSecondsSinceEpoch)
 {
     m_time.tv_sec = microSecondsSinceEpoch / KMicroSecondsPerSecond;
     m_time.tv_usec = microSecondsSinceEpoch % KMicroSecondsPerSecond;
 }
 
-TimeStamp TimeStamp::addSeconds(double seconds)
+Timestamp Timestamp::addSeconds(double seconds)
 {
     int64_t microSeconds = seconds * KMicroSecondsPerSecond;
-    return TimeStamp(microSecondsSinceEpoch() + microSeconds);
+    return Timestamp(microSecondsSinceEpoch() + microSeconds);
 }
 /*
     YYYY,
@@ -36,7 +36,7 @@ TimeStamp TimeStamp::addSeconds(double seconds)
     YYYYMMDDHHMMSSMS,
     YYYYMMDDHHMMSSMS2,
     */
-string TimeStamp::toString(TimeFmt fmt)
+string Timestamp::toString(TimeFmt fmt)
 {
     char buf[64] = {0x00};
     struct tm t = *localtime(&m_time.tv_sec);
@@ -58,28 +58,28 @@ string TimeStamp::toString(TimeFmt fmt)
         snprintf(buf, sizeof(buf), "%.4d-%.2d-%.2d", t.tm_year+1900, t.tm_mon+1, t.tm_mday);
         break;
     case YYYYMMDDHH:
-        snprintf(buf, sizeof(buf), "%.4d%.2d%.2d%.2d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour);
+        snprintf(buf, sizeof(buf), "%.4d%.2d%.2d %.2d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour);
         break;
     case YYYYMMDDHH2:
         snprintf(buf, sizeof(buf), "%.4d-%.2d-%.2d %.2d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour);
         break;
     case YYYYMMDDHHMM:
-        snprintf(buf, sizeof(buf), "%.4d%.2d%.2d%.2d%.2d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min);
+        snprintf(buf, sizeof(buf), "%.4d%.2d%.2d %.2d:%.2d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min);
         break;
     case YYYYMMDDHHMM2:
-        snprintf(buf, sizeof(buf), "%.4d-%.2d-%.2d %.2d%.2d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min);
+        snprintf(buf, sizeof(buf), "%.4d-%.2d-%.2d %.2d:%.2d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min);
         break;
     case YYYYMMDDHHMMSS:
-        snprintf(buf, sizeof(buf), "%.4d%.2d%.2d%.2d%.2d%.2d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
+        snprintf(buf, sizeof(buf), "%.4d%.2d%.2d %.2d:%.2d:%.2d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
         break;
     case YYYYMMDDHHMMSS2:
         snprintf(buf, sizeof(buf), "%.4d-%.2d-%.2d %.2d:%.2d:%.2d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
         break;
     case YYYYMMDDHHMMSSMS:
-        snprintf(buf, sizeof(buf), "%.4d%.2d%.2d%.2d%.2d%.2d%.6d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, m_time.tv_usec);
+        snprintf(buf, sizeof(buf), "%.4d%.2d%.2d %.2d:%.2d:%.2d.%.6d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, m_time.tv_usec);
         break;
     case YYYYMMDDHHMMSSMS2:
-        snprintf(buf, sizeof(buf), "%.4d-%.2d-%.2d %.2d:%.2d:%.2d%.6d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, m_time.tv_usec);
+        snprintf(buf, sizeof(buf), "%.4d-%.2d-%.2d %.2d:%.2d:%.2d.%.6d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, m_time.tv_usec);
         break;
 
 /*

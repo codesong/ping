@@ -1,5 +1,5 @@
 /*************************************************************************
-* File Name: TimeStamp.h
+* File Name: Timestamp.h
 * Author: codesong
 * Mail: codesong@qq.com 
 * Created Time: 2021年08月10日 星期二 23时27分48秒
@@ -36,22 +36,24 @@ enum TimeFmt
     YYYYMMDDHHMMSSMS2,
 };
 
-class TimeStamp
+class Timestamp
 {
 public:
-    TimeStamp(): m_time{0, 0} {}    
-    explicit TimeStamp(const timeval &tv): m_time(tv) {}
-    explicit TimeStamp(int64_t microSecondsSinceEpoch);
-    TimeStamp(time_t sec, int64_t usec): m_time{sec, usec} {}
-    ~TimeStamp() {}
+    Timestamp(): m_time{0, 0} {}    
+    explicit Timestamp(const timeval &tv): m_time(tv) {}
+    explicit Timestamp(int64_t microSecondsSinceEpoch);
+    Timestamp(time_t sec, int64_t usec): m_time{sec, usec} {}
+    ~Timestamp() {}
 
     time_t secondsSinceEpoch() const { return m_time.tv_sec; }
     int64_t microSecondsSinceEpoch() const { return m_time.tv_sec + m_time.tv_usec * KMicroSecondsPerSecond; }
+    time_t seconds() const { return m_time.tv_sec; }
+    long microSeconds() const { return m_time.tv_usec; }
 
     bool valid() const { return m_time.tv_sec > 0; }
     void invalid() { m_time.tv_sec = m_time.tv_usec = 0; }
 
-    TimeStamp addSeconds(double seconds);
+    Timestamp addSeconds(double seconds);
 
     string toString(TimeFmt fmt);
 
@@ -59,17 +61,17 @@ private:
     struct timeval m_time;
 };
 
-inline bool operator==(const TimeStamp &lhs, const TimeStamp &rhs)
+inline bool operator==(const Timestamp &lhs, const Timestamp &rhs)
 {
     return lhs.microSecondsSinceEpoch() == rhs.microSecondsSinceEpoch();
 }
 
-inline bool operator<(const TimeStamp &lhs, const TimeStamp &rhs)
+inline bool operator<(const Timestamp &lhs, const Timestamp &rhs)
 {
     return lhs.microSecondsSinceEpoch() < rhs.microSecondsSinceEpoch();
 }
 
-inline double timeDiff(const TimeStamp &high, const TimeStamp &low)
+inline double timeDiff(const Timestamp &high, const Timestamp &low)
 {
     int64_t diff = high.microSecondsSinceEpoch() - low.microSecondsSinceEpoch();
     return static_cast<double>(diff) / KMicroSecondsPerSecond;

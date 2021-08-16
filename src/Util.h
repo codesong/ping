@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
-#include "TimeStamp.h"
+#include "Timestamp.h"
 
 namespace ping
 {
@@ -27,7 +27,7 @@ namespace Util
     pid_t currThreadId();
     const string currThreadName();
     bool isMainThread();
-    TimeStamp currTime();
+    Timestamp currTime();
 
 } // namespace Util
 

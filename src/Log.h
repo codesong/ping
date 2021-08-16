@@ -8,7 +8,11 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
+#include <vector>
+#include "Thread.h"
 #include "Ostream.h"
+#include "Condtion.h"
+#include "Timestamp.h"
 #include "Singleton.h"
 #include "Noncopyable.h"
 
@@ -54,39 +58,77 @@ public:
     Ostream &stream() { return m_ostream; }
 
 private:
+    void appendTime();
     void finish();
 
 private:
-    LogLevel m_leve;
-    Ostream m_ostream;
+    LogLevel    m_logLevel;
+    Ostream     m_ostream;
+    Timestamp   m_timestamp;
 };
 
 class ConsoleAppender: Noncopyable
 {
 public:
-    bool append(const char *data, size_t len)
+    ConsoleAppender() = default;
+    ~ConsoleAppender() = default;
+
+    bool append(LogLevel logLevel, const char *data, size_t len)
     {
         size_t n = fwrite(data, 1, len, stdout);
         return n == len;
     }
 };
 
+class LogFile;
+using std::vector;
 class FileAppender: Noncopyable
 {
 public:
+    using Buffer = StreamBuffer<KLargeBuffer>;
+    using BufferPtr = std::unique_ptr<Buffer>;
+    using LogFilePtr = std::unique_ptr<LogFile>;
+    
+    FileAppender(const string &filePath, const string &baseName, off_t rollSize, int flushInterval);
+    ~FileAppender();
 
+    bool append(LogLevel logLevel, const char *data, size_t len);
+
+private:
+    void logging();
+    void getFreeBuffer();
+
+private:
+    Mutex   m_mutex;
+    Condtion m_cond;
+    Thread m_thread;
+    bool m_fatalOccur;
+    atomic<bool> m_running;
+    const string m_baseName;
+    const off_t m_rollSize;
+    const int m_flushInterval;
+    BufferPtr m_currBuffer;
+    vector<BufferPtr> m_vecFullBuffer;
+    vector<BufferPtr> m_vecFreeBuffer;
 };
 
 class Logger: Noncopyable
 {
 public:
-    void setLoglevel(LogLevel loglevel) {}
-    LogLevel loglevel() { return m_loglevel; }
-    
-    bool append(const char *data, size_t len);
+    using FileAppenderPtr = std::unique_ptr<FileAppender>;
+    using ConsoleAppenderPtr = std::unique_ptr<ConsoleAppender>;
+
+    Logger() = default;
+    ~Logger() = default;
+
+    void init(const string &filePath, const string &baseName, LogLevel level, int rollSize, int flushInterval, bool alsoLogConsole);
+    void init(const string &filePath, const string &baseName, const string &level, int rollSize, int flushInterval, bool alsoLogConsole);
+    void append(LogLevel logLevel, const char *data, size_t len);
 
 private:
-    LogLevel m_loglevel;
+    LogLevel            m_logLevel;
+    FileAppenderPtr     m_fileAppender;
+    ConsoleAppenderPtr  m_consoleAppender;
 };
 
 

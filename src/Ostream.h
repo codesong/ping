@@ -24,7 +24,7 @@ template<int SIZE>
 class StreamBuffer: Noncopyable
 {
 public:
-    StreamBuffer() :m_curr(m_data) {}
+    StreamBuffer() :m_curr(m_data) { bzero(); }
     ~StreamBuffer() {}
 
     bool append(const char *data, size_t len)
@@ -47,8 +47,10 @@ public:
     size_t capacity() const { return sizeof(m_data); }
     
     void reset() { m_curr = m_data; }
-    void bzero() { bzero(m_data, sizeof(m_data)); }
     string toString() const { return string(m_data, size()); }
+
+private:
+    void bzero() { ::bzero(m_data, sizeof(m_data)); }
 
 private:
     char *m_curr;

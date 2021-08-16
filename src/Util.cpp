@@ -39,11 +39,11 @@ bool Util::isMainThread()
     return currThreadId() == ::getpid();
 }
 
-TimeStamp Util::currTime()
+Timestamp Util::currTime()
 {
     struct timeval tv;
     CHECK_RETZERO(gettimeofday(&tv, nullptr));
-    return TimeStamp(tv);
+    return Timestamp(tv);
 }
 
 } // namespace ping

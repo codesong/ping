@@ -22,12 +22,29 @@ namespace ping
 
 using std::string;
 
-class Exception: Noncopyable
+class Exception: public std::exception 
 {
+public:
+    Exception(const string &msg);
+    ~Exception() = default;
+
+    const char *what() const noexcept override
+    {
+        return m_message.c_str();
+    }
+
+    string stackInfo() const noexcept
+    {
+        return m_stackInfo;
+    }
 
 private:
-public:
     string stackTrace();
+    void demangleSymbol(string &symbol);
+
+private:
+    string m_message;
+    string m_stackInfo;
 };
 
 }
