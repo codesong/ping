@@ -34,14 +34,14 @@ public:
     void start();
     void stop();
 
-    void excute(Task task);
+    void execute(Task task);
 
-    const string &name() const
-    {
-        return m_name; // 不会有竞争，不需加锁
-    }
-
-    size_t taskSize() const;
+    const string &name() const { return m_name; } // 不会有竞争，不需加锁
+    size_t taskSize() const 
+    { 
+        MutexGuard _(m_mutex);
+        return m_taskQueue.size(); 
+    };
 
 private:
     void run();
@@ -55,6 +55,7 @@ private:
         Running,
         WaitStoped,
     };
+
 private:
     string  m_name;
     size_t  m_taskSize;

@@ -19,18 +19,12 @@
 namespace ping
 {
 
-#define LOG(loglevel) \
-    if(Singleton<Logger>::instance().logleve() <= logleve) \
-    { \
-        if(TRACE == logleve || DEBUG == logleve) \
-        { \
-            LogMessage(__FILE__, __LINE__, logleve, __FUNC__); \
-        }else \
-        { \
-            LogMessage(__FILE__, __LINE__, logleve); \
-        } \
-    }
-    
+#define LOGGER Singleton<Logger>::instance()
+
+#define LOG(level) \
+    if(LOGGER.logLevel() <= level) \
+        LogMessage(__FILE__, __LINE__, level).stream() 
+
 #define LOG_TRACE   LOG(TRACE)
 #define LOG_DEBUG   LOG(DEBUG)
 #define LOG_INFO    LOG(INFO)
@@ -52,14 +46,14 @@ class LogMessage: Noncopyable
 {
 public:
     LogMessage(const char *file, int line, LogLevel level);
-    LogMessage(const char *file, int line, LogLevel level, char *func);
     ~LogMessage();
 
     Ostream &stream() { return m_ostream; }
 
 private:
-    void appendTime();
     void finish();
+    void appendTime();
+    const string logLevelName();
 
 private:
     LogLevel    m_logLevel;
@@ -89,21 +83,33 @@ public:
     using BufferPtr = std::unique_ptr<Buffer>;
     using LogFilePtr = std::unique_ptr<LogFile>;
     
-    FileAppender(const string &filePath, const string &baseName, off_t rollSize, int flushInterval);
+    FileAppender(const string &logDir, const string &baseName, off_t rollSize, int flushInterval);
     ~FileAppender();
 
     bool append(LogLevel logLevel, const char *data, size_t len);
 
 private:
+    void start();
+    void stop();
     void logging();
     void getFreeBuffer();
+
+private:
+    enum State
+    {
+        Stoped,
+        Running,
+        WaitStoped,
+    };
 
 private:
     Mutex   m_mutex;
     Condtion m_cond;
     Thread m_thread;
-    bool m_fatalOccur;
+
     atomic<bool> m_running;
+    atomic<bool> m_fatalOccur;
+    const string m_logDir;
     const string m_baseName;
     const off_t m_rollSize;
     const int m_flushInterval;
@@ -111,6 +117,10 @@ private:
     vector<BufferPtr> m_vecFullBuffer;
     vector<BufferPtr> m_vecFreeBuffer;
 };
+
+const int KInitBufferNum = 32;
+const int KFlushInterval = 3;
+const off_t KRollSize = 10 * 1024 * 1024;
 
 class Logger: Noncopyable
 {
@@ -121,17 +131,21 @@ public:
     Logger() = default;
     ~Logger() = default;
 
-    void init(const string &filePath, const string &baseName, LogLevel level, int rollSize, int flushInterval, bool alsoLogConsole);
-    void init(const string &filePath, const string &baseName, const string &level, int rollSize, int flushInterval, bool alsoLogConsole);
+    void init(const string &filePath, const string &baseName, LogLevel level, 
+        int rollSize = KRollSize, int flushInterval = KFlushInterval, bool alsoLogConsole = false);
+    void init(const string &filePath, const string &baseName, const string &level, 
+        int rollSize = KRollSize, int flushInterval = KFlushInterval, bool alsoLogConsole = false);
     void append(LogLevel logLevel, const char *data, size_t len);
+    const LogLevel logLevel() const { return m_logLevel; }
+
+private:
+    const LogLevel logLevel(const string &level);
 
 private:
     LogLevel            m_logLevel;
     FileAppenderPtr     m_fileAppender;
     ConsoleAppenderPtr  m_consoleAppender;
 };
-
-
 
 }
 

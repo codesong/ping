@@ -15,63 +15,12 @@ namespace ping
 thread_local time_t t_lastSecond;
 thread_local string t_timeStr;
 
-const char *logLevelName(LogLevel level)
-{
-    switch(level)
-    {
-#define XX(name) \
-    case name: \
-        return #name; \
-        break;
-
-    XX(TRACE);
-    XX(DEBUG);
-    XX(INFO);
-    XX(WARN);
-    XX(ERROR);
-    XX(FATAL);
-#undef XX
-    default:
-        return "UNKNOW";
-        break;
-    }
-}
-
-LogLevel logLevel(const string &str)
-{
-#define XX(level, v) \
-    if(str == #v) return level;
-
-    XX(TRACE,   trace);
-    XX(DEBUG,   debug);
-    XX(INFO,    info);
-    XX(WARN,    warn);
-    XX(ERROR,   error);
-    XX(FATAL,   fatal);
-
-    XX(TRACE,   TRACE);
-    XX(DEBUG,   DEBUG);
-    XX(INFO,    INFO);
-    XX(WARN,    WARN);
-    XX(ERROR,   ERROR);
-    XX(FATAL,   FATAL);
-
-    return TRACE;
-#undef XX
-}
-
 LogMessage::LogMessage(const char *file, int line, LogLevel level)
     : m_timestamp(Util::currTime()), m_logLevel(level)
 {
     appendTime();
-    m_ostream << " " << logLevelName(level) << " " << Util::currThreadId(); 
-}
-
-LogMessage::LogMessage(const char *file, int line, LogLevel level, char *func)
-    : m_timestamp(Util::currTime()), m_logLevel(level)
-{
-    appendTime();
-    m_ostream << " " << logLevelName(level) << " " << Util::currThreadId(); 
+    m_ostream << logLevelName() << " " << Util::currThreadId() << " "; 
+    m_ostream << file << ":" << line << " ";
 }
 
 LogMessage::~LogMessage()
@@ -94,17 +43,35 @@ void LogMessage::appendTime()
         t_lastSecond = m_timestamp.seconds();
         t_timeStr = m_timestamp.toString(YYYYMMDDHHMMSS);
     }
-    Fmt us(" .%.6d ", m_timestamp.microSeconds());
+    Fmt us(".%.6d ", m_timestamp.microSeconds());
     m_ostream << t_timeStr << us.data();
 }
 
-const off_t KRollSize = 100 * 1024 * 1024;
-const int KInitBufferNum = 32;
-const int KFlushInterval = 3;
+const string LogMessage::logLevelName()
+{
+    switch(m_logLevel)
+    {
+#define XX(name) \
+    case name: \
+        return #name; \
+        break;
 
-FileAppender::FileAppender(const string &filePath, const string &baseName, off_t rollSize, int flushInterval)
-    : m_baseName(baseName), m_rollSize(rollSize), m_flushInterval(flushInterval),
-      m_mutex(), m_cond(m_mutex), m_fatalOccur(false), 
+    XX(TRACE);
+    XX(DEBUG);
+    XX(INFO);
+    XX(WARN);
+    XX(ERROR);
+    XX(FATAL);
+#undef XX
+    default:
+        return "UNKNOW";
+        break;
+    }
+}
+
+FileAppender::FileAppender(const string &logDir, const string &baseName, off_t rollSize, int flushInterval)
+    : m_logDir(logDir), m_baseName(baseName), m_rollSize(rollSize), m_flushInterval(flushInterval),
+      m_mutex(), m_cond(m_mutex), m_running(false), m_fatalOccur(false),
       m_thread(std::bind(&FileAppender::logging, this), "Logging")
 {
     m_vecFullBuffer.reserve(KInitBufferNum);
@@ -114,34 +81,56 @@ FileAppender::FileAppender(const string &filePath, const string &baseName, off_t
         BufferPtr buffer = std::make_unique<Buffer>();
         m_vecFreeBuffer.push_back(std::move(buffer));
     }
-
     m_currBuffer = std::make_unique<Buffer>();
-    m_thread.start();
+    start();
 }
 
 FileAppender::~FileAppender()
 {
+    if(m_running)
+        stop();
+}
+
+void FileAppender::start()
+{
+    m_running = true;
+    m_thread.start();
+}
+
+void FileAppender::stop()
+{
+    m_running = false;
     m_thread.stop();
 }
 
 bool FileAppender::append(LogLevel logLevel, const char *data, size_t len)
 {
     bool appended = false;
-    MutexGuard _(m_mutex);
+    if(m_running && !m_fatalOccur)
+    {
+        if(FATAL == logLevel)
+            m_fatalOccur = true;
+
+        MutexGuard _(m_mutex);
+        if(m_currBuffer->avail() >= len)
+        {
+            appended = m_currBuffer->append(data, len);
+        }else
+        {
+            m_vecFullBuffer.push_back(std::move(m_currBuffer));
+            getFreeBuffer();
+            appended = m_currBuffer->append(data, len);
+            m_cond.notify();
+        }
+
+    }
+/*
     if(FATAL == logLevel)
     {
-        m_fatalOccur = true;
+        //stop();
+        abort();
     }
-    if(m_currBuffer->avail() >= len)
-    {
-        appended = m_currBuffer->append(data, len);
-    }else
-    {
-        m_vecFullBuffer.push_back(std::move(m_currBuffer));
-        getFreeBuffer();
-        appended = m_currBuffer->append(data, len);
-        m_cond.notify();
-    }
+*/
     return appended;
 }
 
@@ -160,10 +149,12 @@ void FileAppender::getFreeBuffer()
 
 void FileAppender::logging()
 {
-    LogFile logFile(m_baseName, m_rollSize, false);
+    int pos = m_baseName.find_last_of("/\\");
+    if(string::npos == pos) pos = 0;
+    LogFile logFile(m_logDir, m_baseName.substr(string::npos == pos ? 0 : pos+1), m_rollSize, false);
     vector<BufferPtr> vecBufferToWrite;
     vecBufferToWrite.reserve(KInitBufferNum);
-    while(true)
+    while(m_running)
     {
         do
         {
@@ -192,12 +183,21 @@ void FileAppender::logging()
                 vecBufferToWrite.pop_back();
             }
         }while(false);
+
         logFile.flush();
+        if(m_fatalOccur)
+        {
+            MutexGuard _(m_mutex);
+            if(m_vecFullBuffer.empty() 
+                && m_currBuffer->size() <= 0)
+                abort();
+        }
     }
+    logFile.flush();
 }
 
 void Logger::init(const string &filePath, const string &baseName, LogLevel level, 
-        int rollSize = KRollSize, int flushInterval = KFlushInterval, bool alsoLogConsole = false)
+        int rollSize, int flushInterval, bool alsoLogConsole)
 {
 
     m_logLevel = level;
@@ -209,7 +209,7 @@ void Logger::init(const string &filePath, const string &baseName, LogLevel level
 }
 
 void Logger::init(const string &filePath, const string &baseName, const string &level, 
-        int rollSize = KRollSize, int flushInterval = KFlushInterval, bool alsoLogConsole = false)
+        int rollSize, int flushInterval, bool alsoLogConsole)
 {
     m_logLevel = logLevel(level);
     if(alsoLogConsole)
@@ -232,4 +232,26 @@ void Logger::append(LogLevel logLevel, const char *data, size_t len)
     }
 }
 
+const LogLevel Logger::logLevel(const string &level)
+{
+#define XX(LogLevel, v) \
+    if(level == #v) return LogLevel;
+
+    XX(TRACE,   trace);
+    XX(DEBUG,   debug);
+    XX(INFO,    info);
+    XX(WARN,    warn);
+    XX(ERROR,   error);
+    XX(FATAL,   fatal);
+
+    XX(TRACE,   TRACE);
+    XX(DEBUG,   DEBUG);
+    XX(INFO,    INFO);
+    XX(WARN,    WARN);
+    XX(ERROR,   ERROR);
+    XX(FATAL,   FATAL);
+
+    return TRACE;
+#undef XX
+}
 }

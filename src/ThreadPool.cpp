@@ -53,6 +53,8 @@ void ThreadPool::start()
 void ThreadPool::stop()
 {
     MutexGuard _(m_mutex);
+    m_notFull.notifyAll();
+    m_notEmpty.notifyAll();
     if(Running == m_state)
     {
         if(m_taskQueue.empty())
@@ -62,6 +64,10 @@ void ThreadPool::stop()
         {
             m_state = WaitStoped;
         }
+    }else if(WaitStoped == m_state)
+    {
+        if(m_taskQueue.empty())
+            m_state = Stoped;
     }
 
     if(Stoped == m_state)
@@ -71,11 +77,10 @@ void ThreadPool::stop()
             thread->stop();
         }
         m_vecThread.clear();
-        m_taskQueue.clear();
     }
 }
 
-void ThreadPool::excute(Task task)
+void ThreadPool::execute(Task task)
 {
     if(Running == m_state) // 运行状态才接受新任务
     {
@@ -131,6 +136,12 @@ void ThreadPool::run()
             if(task)
             {
                 task();
+            }
+
+            // 处理完现有任务后退出线程
+            if(WaitStoped == m_state && m_taskQueue.empty())
+            {
+                stop(); 
             }
         }
     }catch(const Exception &ex)

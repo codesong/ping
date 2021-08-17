@@ -12,6 +12,7 @@
 #include "Mutex.h"
 #include "LogFile.h"
 #include "Timestamp.h"
+#include <stdio.h>
 
 namespace ping
 {
@@ -52,6 +53,7 @@ bool LogFile::File::append(const char *data, size_t len)
             }
         }
     }
+    m_size += written;
     return written == len;
 }
 
@@ -60,15 +62,15 @@ size_t LogFile::File::write(const char *data, size_t len)
     return ::fwrite_unlocked(data, 1, len, m_file);
 }
 
-LogFile::LogFile(const string &baseName, off_t rollSize, bool threadSafe)
-    : m_baseName(baseName), m_rollSize(rollSize), m_mutex(threadSafe ? new Mutex : nullptr)
+LogFile::LogFile(const string &logDir, const string &baseName, off_t rollSize, bool threadSafe)
+    : m_logDir(logDir), m_baseName(baseName), m_rollSize(rollSize), 
+      m_mutex(threadSafe ? new Mutex : nullptr)
 {
     rollFile();
 }
 
 LogFile::~LogFile()
 {
-
 }
 
 bool LogFile::append(const char *data, size_t len)
@@ -97,18 +99,27 @@ void LogFile::flush()
 
 void LogFile::rollFile()
 {
-    string fileName = getFileName(m_baseName);
+    string fileName = getFileName();
     m_file.reset(new File(fileName));
 }
 
-string LogFile::getFileName(const string &baseName)
+string LogFile::getFileName()
 {
-    string fileName = baseName;
-    Timestamp tt = Util::currTime();
+    Timestamp now = Util::currTime();
+    string fileName(m_baseName);
     fileName += ".";
-    fileName += tt.toString(YYYYMMDDHHMMSSMS);
+    fileName += now.toString(YYYYMMDDHHMMSSMS3);
     fileName += ".log";
-    return fileName;
+
+    string linkPath = m_logDir;
+    linkPath += "/";
+    linkPath += m_baseName;
+    linkPath += ".log";
+    unlink(linkPath.c_str());
+    // 建立软链接，忽略失败，此时文件还没生成，软链是无效的
+    symlink(fileName.c_str(), linkPath.c_str());
+
+    return m_logDir + "/" + fileName;
 }
 
 bool LogFile::fileAppend(const char *data, size_t len)

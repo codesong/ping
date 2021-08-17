@@ -81,11 +81,12 @@ string Timestamp::toString(TimeFmt fmt)
     case YYYYMMDDHHMMSSMS2:
         snprintf(buf, sizeof(buf), "%.4d-%.2d-%.2d %.2d:%.2d:%.2d.%.6d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, m_time.tv_usec);
         break;
-
-/*
-        case YYYYMMDDHHMMSSMS:
-            snprintf(buf, sizeof(buf), "%" PRId64 ".%06" PRId64 "", m_time.tv_sec, m_time.tv_usec);
-*/
+    case YYYYMMDDHHMMSSMS3:
+        snprintf(buf, sizeof(buf), "%.4d%.2d%.2d-%.2d%.2d%.2d.%.6d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, m_time.tv_usec);
+        break;
+    case YYYYMMDDHHMMSSMS4:
+        snprintf(buf, sizeof(buf), "%.4d%.2d%.2d%.2d%.2d%.2d.%.6d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, m_time.tv_usec);
+        break;
     }
     return buf;
 }

@@ -29,6 +29,7 @@ void test_timestamp()
     std::cout << tt.toString(YYYYMMDDHHMMSS2) << std::endl;
     std::cout << tt.toString(YYYYMMDDHHMMSSMS) << std::endl;
     std::cout << tt.toString(YYYYMMDDHHMMSSMS2) << std::endl;
+    std::cout << tt.toString(YYYYMMDDHHMMSSMS3) << std::endl;
 };
 
 int main(int argc, char *argv[])

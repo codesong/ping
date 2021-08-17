@@ -40,7 +40,7 @@ public:
     using FilePtr = std::unique_ptr<File>;
     using MutexPtr = std::unique_ptr<Mutex>;
 
-    LogFile(const string &baseName, off_t rollSize, bool threadSafe = true);
+    LogFile(const string &logDir, const string &baseName, off_t rollSize, bool threadSafe = true);
     ~LogFile();
 
     bool append(const char *data, size_t len);
@@ -48,13 +48,14 @@ public:
 
 private:
     void rollFile();
-    string getFileName(const string &baseName);
+    string getFileName();
     bool fileAppend(const char *data, size_t len);
 
 private:
     FilePtr m_file;
     MutexPtr m_mutex;
     const int m_rollSize;
+    const string m_logDir;
     const string m_baseName;
 };
 
