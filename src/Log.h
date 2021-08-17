@@ -42,6 +42,7 @@ enum LogLevel
     FATAL
 };
 
+extern thread_local Ostream t_ostream;
 class LogMessage: Noncopyable
 {
 public:
@@ -56,8 +57,8 @@ private:
     const string logLevelName();
 
 private:
-    LogLevel    m_logLevel;
     Ostream     m_ostream;
+    LogLevel    m_logLevel;
     Timestamp   m_timestamp;
 };
 
