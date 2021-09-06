@@ -52,7 +52,7 @@ public:
     time_t seconds() const { return m_time.tv_sec; }
     long microSeconds() const { return m_time.tv_usec; }
 
-    bool valid() const { return m_time.tv_sec > 0; }
+    bool isValid() const { return m_time.tv_sec > 0; }
     void invalid() { m_time.tv_sec = m_time.tv_usec = 0; }
 
     Timestamp addSeconds(double seconds);
