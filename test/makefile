@@ -15,8 +15,9 @@ TARGET = a.out
 all: ${TARGET} 
 
 clean:
-	-rm -rf ../src/*.o
 	-rm -rf *.o
+	-rm -rf ../src/*.o
+	-rm -rf ../src/net/*.o
 	-rm -rf ${TARGET}
 
 FLAGS = -pthread
