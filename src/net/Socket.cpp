@@ -9,6 +9,7 @@
 #include "Socket.h"
 #include "InetAddress.h"
 #include <unistd.h>
+#include <sys/uio.h>
 
 namespace ping
 {
@@ -63,15 +64,16 @@ ssize_t Socket::write(int sockfd, const void *buf, size_t count)
     return ::write(sockfd, buf, count);
 }
 
+ssize_t Socket::readv(int sockfd, const struct iovec *iov, int iovcnt)
+{
+    return ::readv(sockfd, iov, iovcnt);
+}
+
 int Socket::accept(int sockfd, InetAddress &addr)
 {
-    struct sockaddr_in6 addr6; 
-    socklen_t addrlen = static_cast<socklen_t>(sizeof(addr6));
-    int connfd = ::accept4(sockfd, static_cast<sockaddr *>((void *)&addr6), &addrlen, SOCK_NONBLOCK | SOCK_CLOEXEC);
-    if(connfd >= 0)
-    {
-        addr.setSockAddr(addr6);
-    }else
+    socklen_t addrlen = addr.sockAddrLen();
+    int connfd = ::accept4(sockfd, addr.sockAddr(), &addrlen, SOCK_NONBLOCK | SOCK_CLOEXEC);
+    if(connfd < 0)
     {
         int errorNo = errno;
         LOG_ERROR << "Socket::accept failed!";

@@ -84,6 +84,8 @@ public:
     using BufferPtr = std::unique_ptr<Buffer>;
     using LogFilePtr = std::unique_ptr<LogFile>;
     
+    static const int KInitBufferNum = 32;
+
     FileAppender(const string &logDir, const string &baseName, off_t rollSize, int flushInterval);
     ~FileAppender();
 
@@ -119,15 +121,14 @@ private:
     vector<BufferPtr> m_vecFreeBuffer;
 };
 
-const int KInitBufferNum = 32;
-const int KFlushInterval = 3;
-const off_t KRollSize = 10 * 1024 * 1024;
-
 class Logger: Noncopyable
 {
 public:
     using FileAppenderPtr = std::unique_ptr<FileAppender>;
     using ConsoleAppenderPtr = std::unique_ptr<ConsoleAppender>;
+
+    static const int KFlushInterval = 3;
+    static const off_t KRollSize = 10 * 1024 * 1024;
 
     Logger() = default;
     ~Logger() = default;

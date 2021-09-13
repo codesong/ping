@@ -27,6 +27,7 @@ void close(int sockfd);
 
 ssize_t read(int sockfd, void *buf, size_t count);
 ssize_t write(int sockfd, const void *buf, size_t count);
+ssize_t readv(int sockfd, const struct iovec *iov, int iovcnt);
 
 uint16_t hton16(uint16_t host);
 uint32_t hton32(uint32_t host);

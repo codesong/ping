@@ -30,9 +30,9 @@ public:
     string ip() const;
     uint16_t port() const;
     string ipPort() const;
+    struct sockaddr *sockAddr() { return static_cast<struct sockaddr *>((void *)&m_addr6); }
     const struct sockaddr *sockAddr() const { return static_cast<const struct sockaddr *>((const void *)&m_addr6); }
     const socklen_t sockAddrLen() const { return static_cast<socklen_t>(sizeof(sockaddr_in6)); }
-    void setSockAddr(const struct sockaddr_in6 &addr) { m_addr6 = addr; }
 
     void setScopeId(uint32_t scopeId); // IPv6
 
