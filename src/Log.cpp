@@ -82,25 +82,17 @@ FileAppender::FileAppender(const string &logDir, const string &baseName, off_t r
         m_vecFreeBuffer.push_back(std::move(buffer));
     }
     m_currBuffer = std::make_unique<Buffer>();
-    start();
+    m_running = true;
+    m_thread.start();
 }
 
 FileAppender::~FileAppender()
 {
     if(m_running)
-        stop();
-}
-
-void FileAppender::start()
-{
-    m_running = true;
-    m_thread.start();
-}
-
-void FileAppender::stop()
-{
-    m_running = false;
-    m_thread.stop();
+    {
+        m_running = false;
+        m_thread.stop();
+    }
 }
 
 bool FileAppender::append(LogLevel logLevel, const char *data, size_t len)
@@ -124,13 +116,6 @@ bool FileAppender::append(LogLevel logLevel, const char *data, size_t len)
         }
 
     }
-/*
-    if(FATAL == logLevel)
-    {
-        //stop();
-        abort();
-    }
-*/
     return appended;
 }
 

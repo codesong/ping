@@ -10,7 +10,7 @@
 namespace ping
 {
 
-Connection::Connection(EventLoop &loop, const string &name, int connFd, 
+Connection::Connection(EventLoopPtr eventLoop, const string &name, int connFd, 
             const InetAddress &localAddr, const InetAddress &peerAddr)
 {
 
@@ -18,6 +18,21 @@ Connection::Connection(EventLoop &loop, const string &name, int connFd,
 
 Connection::~Connection()
 {
+
+}
+
+void Connection::connected()
+{
+    m_eventLoop->checkThread();
+    m_channel->enableRead();
+    m_connectCallback(shared_from_this());
+}
+
+void Connection::disconnected()
+{
+    m_eventLoop->checkThread();
+    m_channel->disableAll();
+    m_connectCallback(shared_from_this());
 
 }
 

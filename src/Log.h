@@ -92,8 +92,6 @@ public:
     bool append(LogLevel logLevel, const char *data, size_t len);
 
 private:
-    void start();
-    void stop();
     void logging();
     void getFreeBuffer();
 

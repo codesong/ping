@@ -22,7 +22,7 @@ class Poller: Noncopyable
 {
 public:
     Poller() = default;
-    ~Poller() = default;
+    virtual ~Poller() = default;
 
     virtual Timestamp poll(int timeoutMs, vector<ChannelPtr> &activeChannels) = 0;
     virtual void addChannel(ChannelPtr channel) = 0;

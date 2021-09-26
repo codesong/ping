@@ -9,10 +9,9 @@
 
 namespace ping
 {
-Acceptor::Acceptor(EventLoop &loop, const InetAddress &listenAddr, bool reusePort)
-    : m_listenFd(Socket::createTcpSocket(listenAddr.family())),
-      m_acceptChannel(loop, m_listenFd),
-      m_idleFd(open("/dev/null", O_RDONLY | O_CLOEXEC))
+Acceptor::Acceptor(EventLoopPtr eventLoop, const NewConnectionCallback &cb,  const InetAddress &listenAddr, bool reusePort)
+    : m_listenFd(Socket::createTcpSocket(listenAddr.family())), m_acceptChannel(eventLoop, m_listenFd),
+      m_newConnectionCallback(cb), m_idleFd(open("/dev/null", O_RDONLY | O_CLOEXEC))
 {
     int optval = 1;
     CHECK_RETZERO(::setsockopt(m_listenFd, SOL_SOCKET, SO_REUSEADDR, &optval, static_case<socklen_t>(sizeof(optval))));
@@ -20,6 +19,8 @@ Acceptor::Acceptor(EventLoop &loop, const InetAddress &listenAddr, bool reusePor
     CHECK_RETZERO(::setsockopt(m_listenFd, SOL_SOCKET, SO_REUSEPORT, &optval, static_case<socklen_t>(sizeof(optval))));
     Socket::bind(m_listenFd, listenAddr);
     m_acceptChannel.setReadCallback(std::bind(&Acceptor::handleRead, this));
+
+    listen();
 }
 
 Acceptor::~Acceptor()

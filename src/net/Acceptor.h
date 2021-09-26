@@ -23,17 +23,11 @@ class Acceptor: Noncopyable
 public:
     using NewConnectionCallback = std::function<void(int sockfd, const InetAddress &)>;
 
-    Acceptor(EventLoop &loop, const InetAddress &listenAddr, bool reusePort);
+    Acceptor(EventLoopPtr eventLoop, const NewConnectionCallback &cb,  const InetAddress &listenAddr, bool reusePort);
     ~Acceptor();
 
-    void setNewConnectionCallback(const NewConnectionCallback &cb)
-    {
-        m_newConnectionCallback = cb;
-    }
-
-    void listen();
-
 private:
+    void listen();
     void handleRead();
 
 private:

@@ -19,6 +19,7 @@ const int KSmallBuffer = 4096;
 const int KLargeBuffer = 1000 * 4096;
 
 using std::string;
+using std::string_view;
 
 template<int SIZE>
 class StreamBuffer: Noncopyable
@@ -48,6 +49,7 @@ public:
     
     void reset() { m_curr = m_data; }
     string toString() const { return string(m_data, size()); }
+    string_view toStringView() const { return string_view(m_data, size()); }
 
 private:
     void bzero() { ::bzero(m_data, sizeof(m_data)); }
@@ -62,7 +64,7 @@ class Ostream: Noncopyable
 public:
     using Buffer = StreamBuffer<KSmallBuffer>;
 
-    Ostream &operator<<(bool v);
+    Ostream &operator<<(bool v) { return operator<<(v ? '1' : '0'); }
     Ostream &operator<<(short v);
     Ostream &operator<<(unsigned short v);
     Ostream &operator<<(int v);
@@ -75,12 +77,38 @@ public:
     Ostream &operator<<(const void *ptr);
     Ostream &operator<<(float v);
     Ostream &operator<<(double v);
-    Ostream &operator<<(char v);
+    Ostream &operator<<(char v)
+    {
+        append(&v, 1);
+        return *this;
+    }
 
-    Ostream &operator<<(const char *str);
-    Ostream &operator<<(const unsigned char *str);
-    Ostream &operator<<(const string &str);
+    Ostream &operator<<(const char *str)
+    {
+        if(str)
+        {
+            append(str, strlen(str));
+        }else
+        {
+            append("(null)", 6);
+        }
+        return *this;
+    }
 
+    Ostream &operator<<(const unsigned char *str) { return operator<<(reinterpret_cast<const char*>(str)); }
+    Ostream &operator<<(const string &str)
+    {
+        append(str.c_str(), str.size());
+        return *this;
+    }
+
+    Ostream &operator<<(const string_view &str)
+    {
+        append(str.data(), str.size());
+        return *this;
+    }
+
+    Ostream &operator<<(const Buffer &v) { return operator<<(v.toStringView()); }
     bool append(const char *data, size_t len) { return m_buffer.append(data, len); }
     const Buffer &buffer() const { return m_buffer; }
     void resetBuffer() { m_buffer.reset(); }

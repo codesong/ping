@@ -23,11 +23,6 @@ void Ostream::staticCheck()
     static_assert(KMaxNumericSize - 10 > std::numeric_limits<long long>::digits10, "KMaxNumericSize is large enough");
 }
 
-Ostream &Ostream::operator<<(bool v)
-{
-    return operator<<(v ? '1' : '0');
-}
-
 Ostream &Ostream::operator<<(short v)
 {
     return operator<<(static_cast<int>(v));
@@ -93,35 +88,6 @@ Ostream &Ostream::operator<<(double v)
         int len = snprintf(m_buffer.current(), KMaxNumericSize, "%.12g", v);
         m_buffer.add(len);
     }
-    return *this;
-}
-
-Ostream &Ostream::operator<<(char v)
-{
-    append(&v, 1);
-    return *this;
-}
-
-Ostream &Ostream::operator<<(const char *str)
-{
-    if(str)
-    {
-        append(str, strlen(str));
-    }else
-    {
-        append("(null)", 6);
-    }
-    return *this;
-}
-
-Ostream &Ostream::operator<<(const unsigned char *str)
-{
-    return operator<<(reinterpret_cast<const char*>(str));
-}
-
-Ostream &Ostream::operator<<(const string &str)
-{
-    append(str.c_str(), str.size());
     return *this;
 }
 
