@@ -8,13 +8,19 @@
 #ifndef __EVENTLOOP_H__
 #define __EVENTLOOP_H__
 
+#include <vector>
+#include <memory>
 #include "Poller.h"
+#include "Channel.h"
+#include "../Util.h"
+#include "../Mutex.h"
 #include "../Thread.h"
 
 namespace ping
 {
+using std::vector;
 // 不开线程，就非线程安全(类似STL的vector，需外部保证线程安全)
-class EventLoop: Noncopyable
+class EventLoop: Noncopyable, public std::enable_shared_from_this<EventLoop>
 {
 public:
     using Functor = std::function<void()>;
@@ -42,12 +48,13 @@ private:
     void wakeup();
     void handleWakeup();
 
+    void executeFunctors();
     bool inCreatedThread() const { return m_threadId == Util::currThreadId(); }
 
 private:
     const int m_wakeupFd;
     ChannelPtr m_wakeupChannel; 
-    const pid_t m_threadId;
+    pid_t m_threadId;
     MutexPtr  m_mutex;
     ThreadPtr m_thread;
     PollerPtr m_poller; 
@@ -55,8 +62,6 @@ private:
     vector<Functor> m_vecFunctor;
     vector<ChannelPtr> m_vecActiveChannel;
 };
-
-using EventLoopPtr = std::shared_ptr<EventLoop>;
 
 }
 

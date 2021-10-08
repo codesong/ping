@@ -5,6 +5,13 @@
 * Created Time: 2021年09月13日 星期一 15时11分14秒
 *************************************************************************/
 
+#include <poll.h>
+#include <sys/epoll.h>
+#include "EPoll.h"
+#include "Socket.h"
+#include "../Log.h"
+#include "../Util.h"
+
 namespace ping
 {
 
@@ -15,7 +22,7 @@ static_assert(EPOLLRDHUP == POLLRDHUP,  "epoll use same flag values as poll");
 static_assert(EPOLLERR == POLLERR,      "epoll use same flag values as poll");
 static_assert(EPOLLHUP == POLLHUP,      "epoll use same flag values as poll");
 
-EPoll::EPoll(): m_vecEvent(16), m_epollfd(::epoll_create1(EPOLL_CLOEXEC)),
+EPoll::EPoll(): m_vecEvent(16), m_epollfd(::epoll_create1(EPOLL_CLOEXEC))
 {
     if(m_epollfd < 0)
     {
@@ -25,7 +32,7 @@ EPoll::EPoll(): m_vecEvent(16), m_epollfd(::epoll_create1(EPOLL_CLOEXEC)),
 
 EPoll::~EPoll()
 {
-    close(m_epollfd);
+    Socket::close(m_epollfd);
 }
 
 Timestamp EPoll::poll(int timeoutMs, vector<ChannelPtr> &activeChannels)

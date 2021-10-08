@@ -5,14 +5,27 @@
 * Created Time: 2021年09月13日 星期一 15时06分21秒
 *************************************************************************/
 
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/tcp.h>
+#include "../Log.h"
+#include "EventLoop.h"
 #include "Connection.h"
 
 namespace ping
 {
 
-Connection::Connection(EventLoopPtr eventLoop, const string &name, int connFd, 
+using std::placeholders::_1;
+Connection::Connection(EventLoopPtr eventLoop, const string &name, int sockfd, 
             const InetAddress &localAddr, const InetAddress &peerAddr)
+    : m_sockfd(sockfd), m_localAddr(localAddr), m_peerAddr(peerAddr),
+      m_channel(eventLoop, sockfd)
 {
+    m_channel.setReadCallback(&Connection::handleRead, this, _1);
+    m_channel.setWriteCallback(&Connection::handleWrite, this, _1);
+    m_channel.setCloseCallback(&Connection::handleClose, this, _1);
+    m_channel.setErrorCallback(&Connection::handleError, this, _1);
 
 }
 
@@ -24,14 +37,14 @@ Connection::~Connection()
 void Connection::connected()
 {
     m_eventLoop->checkThread();
-    m_channel->enableRead();
+    m_channel.enableRead();
     m_connectCallback(shared_from_this());
 }
 
 void Connection::disconnected()
 {
     m_eventLoop->checkThread();
-    m_channel->disableAll();
+    m_channel.disableAll();
     m_connectCallback(shared_from_this());
 
 }
@@ -40,8 +53,8 @@ string Connection::getConnectionInfo() const
 {
     char buf[1024] = {0x00};
     struct tcp_info tcpinfo;
-    socklent_t len = sizeof(tcpinfo);
-    int ret = getsockopt(m_sockfd, SOL_TCP, TCP_INFO, tcpinfo, &len);
+    socklen_t len = sizeof(tcpinfo);
+    int ret = getsockopt(m_sockfd, SOL_TCP, TCP_INFO, &tcpinfo, &len);
     if(0 == ret)
     {
         snprintf(buf, len, "unrecovered=%u "

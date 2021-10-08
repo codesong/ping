@@ -8,19 +8,19 @@
 #ifndef __ACCEPTOR_H__
 #define __ACCEPTOR_H__
 
+#include <functional>
 #include "Socket.h"
 #include "EventLoop.h"
 #include "../Noncopyable.h"
-#include <functional>
 
 namespace ping
 {
 
-class EventLoop;
 class InetAddress;
 class Acceptor: Noncopyable
 {
 public:
+    using EventLoopPtr = std::shared_ptr<EventLoop>;
     using NewConnectionCallback = std::function<void(int sockfd, const InetAddress &)>;
 
     Acceptor(EventLoopPtr eventLoop, const NewConnectionCallback &cb,  const InetAddress &listenAddr, bool reusePort);

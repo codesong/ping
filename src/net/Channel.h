@@ -8,12 +8,20 @@
 #ifndef __CHANNEL_H__
 #define __CHANNEL_H__
 
+#include <memory>
+#include <functional>
+#include "../Timestamp.h"
 #include "../Noncopyable.h"
 
-class Channel: Noncopyable
+namespace ping
+{
+
+class EventLoop;
+class Channel: Noncopyable, public std::enable_shared_from_this<Channel>
 {
 public:
-    using EventCallback = std::function<void(const Timestamp &)>;
+    using EventCallback = std::function<void(const Timestamp&)>;
+    using EventLoopPtr = std::shared_ptr<EventLoop>;
 
     Channel(EventLoopPtr eventLoop, int fd);
     ~Channel();
@@ -27,17 +35,22 @@ public:
     void disableRead();
     void enableWrite();
     void disableWrite();
+    void enableAll();
+    void disableAll();
 
     void handleEvent(const Timestamp &time);
 
     int fd() const { return m_fd; }
     int events() const { return m_events; }
-    int setRevents(int revents) { m_revents = revents; }
+    void setRevents(int revents) { m_revents = revents; }
+    int index() const { return m_index; }
+    void setIndex(int index) { m_index = index; }
 
 private:
     int m_events;
     int m_revents;
     const int m_fd;
+    int m_index;
     EventLoopPtr m_eventLoop;
 
     EventCallback m_readCallback;
@@ -45,6 +58,9 @@ private:
     EventCallback m_closeCallback;
     EventCallback m_errorCallback;
 };
+
+using ChannelPtr = std::shared_ptr<Channel>;
+}
 
 #endif
 

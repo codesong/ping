@@ -18,7 +18,7 @@ EventLoopPool::EventLoopPool(const string &name, int threadNum)
         EventLoopPtr eventLoop = std::make_shared<EventLoop>(true, name);
         m_vecIoLoop.push_back(eventLoop);
     }
-    m_baseLoop = std::make_shared<EventLoop(flase, "BaseLoop")>;
+    m_baseLoop = std::make_shared<EventLoop>(false, "BaseLoop");
 }
 
 EventLoopPool::~EventLoopPool()
@@ -46,7 +46,7 @@ void EventLoopPool::stop()
     }
 }
 
-EventLoopPtr EventLoopPool::nextLoop()
+EventLoopPool::EventLoopPtr EventLoopPool::nextLoop()
 {
     EventLoopPtr eventLoop = m_baseLoop;
     if(!m_vecIoLoop.empty())

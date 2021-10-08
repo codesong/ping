@@ -7,22 +7,28 @@
 
 #include "EventLoop.h"
 #include "../Timestamp.h"
+#include "../Log.h"
+#include "Socket.h"
+#include <unistd.h>
+#include <sys/eventfd.h>
 
 namespace ping
 {
 
 const int KPollTimeoutMs = 10000;
-const bool t_existEventLoop = false;
+thread_local bool t_existEventLoop = false;
 
 EventLoop::EventLoop(bool threadOn, const string &threadName)
     : m_running(false), m_mutex(threadOn ? new Mutex : nullptr), 
       m_thread(threadOn ? new Thread(std::bind(&EventLoop::loop, this), threadName) : nullptr),
-      m_wakeupFd(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)), m_wakeupChannel(std::make_shared<Channel>(m_wakeupFd))
+      m_wakeupFd(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)) 
 {
     if(m_wakeupFd < 0)
     {
         LOG_FATAL << "eventfd failed";
     }
+
+    m_wakeupChannel = std::make_shared<Channel>(shared_from_this(), m_wakeupFd);
 
     if(t_existEventLoop)
     {
@@ -36,9 +42,8 @@ EventLoop::EventLoop(bool threadOn, const string &threadName)
 EventLoop::~EventLoop()
 {
     if(m_running) stop();
-    LOG_DEBUG << "EventLoop " << this << " of thread " << m_threadId << << "destruct in thread " << Util::currThreadId();
+    LOG_DEBUG << "EventLoop " << this << " of thread " << m_threadId << " destruct in thread " << Util::currThreadId();
     m_wakeupChannel->disableAll();
-    m_wakeupChannel->destroy();
     ::close(m_wakeupFd);
     t_existEventLoop = false;
 }
@@ -68,10 +73,11 @@ void EventLoop::stop()
 
 void EventLoop::loop()
 {
+    m_threadId = Util::currThreadId();
     while(m_running)
     {
         m_vecActiveChannel.clear();
-        Timestamp pollTime = m_poller->poll(KPollTimeoutMs, &m_vecActiveChannel);
+        Timestamp pollTime = m_poller->poll(KPollTimeoutMs, m_vecActiveChannel);
 
         for(ChannelPtr channel: m_vecActiveChannel)
         {
@@ -120,7 +126,7 @@ void EventLoop::updateChannel(ChannelPtr channel)
 bool EventLoop::hasChannel(ChannelPtr channel)
 {
     checkThread();
-    m_poller->hasChannel(channel);
+    return m_poller->hasChannel(channel);
 }
 
 // 可能由其他线程调用
@@ -133,7 +139,7 @@ void EventLoop::executeInLoop(Functor cb)
     {
         if(m_mutex)
         {
-            MutexGuard _(*m_mutex) 
+            MutexGuard _(*m_mutex);
             m_vecFunctor.push_back(std::move(cb));
         }else
         {

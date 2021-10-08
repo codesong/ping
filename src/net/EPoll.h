@@ -8,6 +8,9 @@
 #ifndef __EPOLL_H__
 #define __EPOLL_H__
 
+#include <memory>
+#include "Poller.h"
+
 namespace ping
 {
 class EPoll: public Poller

@@ -19,6 +19,8 @@ namespace ping
 class EventLoopPool: Noncopyable
 {
 public:
+    using EventLoopPtr = std::shared_ptr<EventLoop>;
+
     EventLoopPool(const string &name = "", int threadNum = 0);
     ~EventLoopPool();
 

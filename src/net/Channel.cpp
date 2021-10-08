@@ -5,7 +5,9 @@
 * Created Time: 2021年09月13日 星期一 15时05分15秒
 *************************************************************************/
 
+#include <poll.h>
 #include "Channel.h"
+#include "EventLoop.h"
 
 namespace ping
 {
@@ -15,7 +17,7 @@ const int KReadEvent = POLLIN | POLLPRI;
 const int KWriteEvent = POLLOUT;
 
 Channel::Channel(EventLoopPtr eventLoop, int fd)
-    : m_fd(fd), m_eventLoop(eventLoop), 
+    : m_index(-1), m_fd(fd), m_eventLoop(eventLoop), 
       m_events(KNoneEvent), m_revents(KNoneEvent) 
 {
     m_eventLoop->addChannel(shared_from_this());
@@ -47,6 +49,19 @@ void Channel::enableWrite()
 void Channel::disableWrite()
 {
     m_events &= ~KWriteEvent;    
+    m_eventLoop->updateChannel(shared_from_this());
+}
+
+void Channel::enableAll()
+{
+    m_events |= KReadEvent;
+    m_events |= KWriteEvent;
+    m_eventLoop->updateChannel(shared_from_this());
+}
+
+void Channel::disableAll()
+{
+    m_events = KNoneEvent;
     m_eventLoop->updateChannel(shared_from_this());
 }
 

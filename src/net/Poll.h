@@ -8,13 +8,16 @@
 #ifndef __POLL_H__
 #define __POLL_H__
 
+#include <memory>
+#include "Poller.h"
+
 namespace ping
 {
 class Poll: public Poller
 {
 public:
     Poll() = default; 
-    ~Poll() = default;
+    ~Poll();
 
     Timestamp poll(int timeoutMs, vector<ChannelPtr> &activeChannels) override;
     void addChannel(ChannelPtr channel) override;

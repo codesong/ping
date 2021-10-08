@@ -1,7 +1,9 @@
 
 CSRCS = ../src/Exception.cpp ../src/Util.cpp ../src/Timestamp.cpp ../src/Ostream.cpp ../src/Thread.cpp ../src/ThreadPool.cpp \
 	../src/LogFile.cpp ../src/Log.cpp ../src/net/Socket.cpp ../src/net/InetAddress.cpp ../src/net/Buffer.cpp \
-	test_buffer.cpp
+	../src/net/Channel.cpp ../src/net/EventLoop.cpp ../src/net/Poll.cpp ../src/net/EPoll.cpp ../src/net/EventLoopPool.cpp \
+	../src/net/Acceptor.cpp ../src/net/Connection.cpp
+	#test_buffer.cpp
 	#test_inetaddress.cpp
 	#test_log.cpp
 	#test_timestamp.cpp
@@ -17,7 +19,7 @@ all: ${TARGET}
 
 clean:
 	-rm -rf *.o
-	-rm -rf ../src/*.o
+	#-rm -rf ../src/*.o
 	-rm -rf ../src/net/*.o
 	-rm -rf ${TARGET}
 

@@ -5,7 +5,12 @@
 * Created Time: 2021年09月13日 星期一 15时03分58秒
 *************************************************************************/
 
+#include <fcntl.h>
+#include <unistd.h>
+#include "../Log.h"
 #include "Acceptor.h"
+#include "InetAddress.h"
+#include "../Exception.h"
 
 namespace ping
 {
@@ -14,9 +19,9 @@ Acceptor::Acceptor(EventLoopPtr eventLoop, const NewConnectionCallback &cb,  con
       m_newConnectionCallback(cb), m_idleFd(open("/dev/null", O_RDONLY | O_CLOEXEC))
 {
     int optval = 1;
-    CHECK_RETZERO(::setsockopt(m_listenFd, SOL_SOCKET, SO_REUSEADDR, &optval, static_case<socklen_t>(sizeof(optval))));
+    CHECK_RETZERO(::setsockopt(m_listenFd, SOL_SOCKET, SO_REUSEADDR, &optval, static_cast<socklen_t>(sizeof(optval))));
     optval = reusePort ? 1 : 0; 
-    CHECK_RETZERO(::setsockopt(m_listenFd, SOL_SOCKET, SO_REUSEPORT, &optval, static_case<socklen_t>(sizeof(optval))));
+    CHECK_RETZERO(::setsockopt(m_listenFd, SOL_SOCKET, SO_REUSEPORT, &optval, static_cast<socklen_t>(sizeof(optval))));
     Socket::bind(m_listenFd, listenAddr);
     m_acceptChannel.setReadCallback(std::bind(&Acceptor::handleRead, this));
 
@@ -26,7 +31,6 @@ Acceptor::Acceptor(EventLoopPtr eventLoop, const NewConnectionCallback &cb,  con
 Acceptor::~Acceptor()
 {
     m_acceptChannel.disableAll();
-    m_acceptChannel.remove();
     close(m_idleFd);
     close(m_listenFd);
 }
@@ -34,7 +38,7 @@ Acceptor::~Acceptor()
 void Acceptor::listen()
 {
     Socket::listen(m_listenFd);
-    m_acceptChannel.enableReading();
+    m_acceptChannel.enableRead();
 }
 
 void Acceptor::handleRead()
