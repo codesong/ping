@@ -17,14 +17,18 @@
 
 namespace ping
 {
+
 class Channel;
 class EventLoop;
 class Connection;
+
 using ConnectionPtr = std::shared_ptr<Connection>;
 using CloseCallback = std::function<void (const ConnectionPtr)>;
 using ConnectCallback = std::function<void (const ConnectionPtr)>;
 using DisconnectCallback = std::function<void (const ConnectionPtr)>;
 using WriteCompleteCallback = std::function<void (const ConnectionPtr)>;
+using MessageCallback = std::function<void (const ConnectionPtr, Buffer &buffer, const Timestamp &recvTime)>;
+
 class Connection: Noncopyable, public std::enable_shared_from_this<Connection>
 {
 public:
@@ -38,17 +42,19 @@ public:
     void disconnected();
     
     void setCloseCallback(const CloseCallback &cb) { m_closeCallback = cb; }
-    void setConnectCallback(const ConnectCallback &cb){ m_connectCallback = cb; }
+    void setConnectCallback(const ConnectCallback &cb) { m_connectCallback = cb; }
+    void setMessageCallback(const MessageCallback &cb) { m_messageCallback = cb; }
     void setDisconnectCallback(const DisconnectCallback &cb) { m_disconnectCallback = cb; }
     void setWriteCompleteCallback(const WriteCompleteCallback &cb) { m_writeCompleteCallback = cb; }
 
     string getConnectionInfo() const;
+    EventLoopPtr getEventLoop() { return m_eventLoop };
 
 private:
-    void handleRead(Timestamp time);
-    void handleWrite();
-    void handleClose();
-    void handleError();
+    void handleRead(const Timestamp &time);
+    void handleWrite(const Timestamp &time);
+    void handleClose(const Timestamp &time);
+    void handleError(const Timestamp &time);
 
 private:
     const int m_sockfd;
@@ -61,6 +67,7 @@ private:
 
     CloseCallback m_closeCallback;
     ConnectCallback m_connectCallback;
+    MessageCallback m_messageCallback;
     DisconnectCallback m_disconnectCallback;
     WriteCompleteCallback m_writeCompleteCallback;
 };

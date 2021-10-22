@@ -65,6 +65,16 @@ void Channel::disableAll()
     m_eventLoop->updateChannel(shared_from_this());
 }
 
+bool Channel::isWriting() const
+{
+    return m_events & KWriteEvent;
+}
+
+bool Channel::isReading() const
+{
+    return m_events & KReadEvent;
+}
+
 void Channel::handleEvent(const Timestamp &time)
 {
     // 对端关闭，且从对端发送的数据全部已读取完整

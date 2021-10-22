@@ -22,10 +22,10 @@ Connection::Connection(EventLoopPtr eventLoop, const string &name, int sockfd,
     : m_sockfd(sockfd), m_localAddr(localAddr), m_peerAddr(peerAddr),
       m_channel(eventLoop, sockfd)
 {
-    m_channel.setReadCallback(&Connection::handleRead, this, _1);
-    m_channel.setWriteCallback(&Connection::handleWrite, this, _1);
-    m_channel.setCloseCallback(&Connection::handleClose, this, _1);
-    m_channel.setErrorCallback(&Connection::handleError, this, _1);
+    m_channel.setReadCallback(std::bind(&Connection::handleRead, this, _1));
+    m_channel.setWriteCallback(std::bind(&Connection::handleWrite, this, _1));
+    m_channel.setCloseCallback(std::bind(&Connection::handleClose, this, _1));
+    m_channel.setErrorCallback(std::bind(&Connection::handleError, this, _1));
 
 }
 
@@ -70,6 +70,59 @@ string Connection::getConnectionInfo() const
         LOG_ERROR << "getTcpInfo::getsockopt TCP_INFO error";
     }
     return buf;
+}
+
+void Connection::handleRead(const Timestamp &time)
+{
+    int errorNo = 0;
+    size_t n = m_inputBuffer.readFd(m_channel.fd(), errorNo);
+    if(n > 0)
+    {
+        m_messageCallback(shared_from_this(), m_inputBuffer, time);
+    }else if(n == 0)
+    {
+        handleClose(time);
+    }else
+    {
+        LOG_ERROR << "Connection::handleRead";
+        handleError(time);
+    }
+}
+
+void Connection::handleWrite(const Timestamp &time)
+{
+    if(m_channel.isWriting())
+    {
+        ssize_t n = Socket::write(m_channel.fd(), m_outputBuffer.peek(), m_outputBuffer.readableBytes());
+        if(n > 0)
+        {
+            m_outputBuffer.hasRead(n);
+            if(m_outputBuffer.readableBytes() == 0)
+            if(m_writeCompleteCallback)
+            {
+                
+            }
+        }
+    }else
+    {
+        LOG_TRACE << "Connecion fd = " << m_channel.fd() << " is down, no more writing";
+    }
+}
+
+void Connection::handleClose(const Timestamp &time)
+{
+    m_channel.disableAll();
+    m_disconnectCallback(shared_from_this());
+    m_closeCallback(shared_from_this());
+}
+
+void Connection::handleError(const Timestamp &time)
+{
+    int optval;
+    socklen_t optlen = static_cast<socklen_t>(sizeof(optval));
+    ::getsockopt(m_channel.fd(), SOL_SOCKET, SO_ERROR, &optval, &optlen);
+    int errorNo = errno;
+    LOG_ERROR << "Connection::handleError SO_ERROR = " << errorNo << " " << strerror(errorNo);
 }
 
 }

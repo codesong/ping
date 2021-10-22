@@ -46,6 +46,9 @@ public:
     int index() const { return m_index; }
     void setIndex(int index) { m_index = index; }
 
+    bool isWriting() const;
+    bool isReading() const;
+
 private:
     int m_events;
     int m_revents;
