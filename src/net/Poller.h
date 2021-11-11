@@ -24,18 +24,18 @@ public:
     Poller() = default;
     virtual ~Poller() = default;
 
-    virtual Timestamp poll(int timeoutMs, vector<ChannelPtr> &activeChannels) = 0;
-    virtual void addChannel(ChannelPtr channel) = 0;
-    virtual void delChannel(ChannelPtr channel) = 0;
-    virtual void updateChannel(ChannelPtr channel) = 0;
-    virtual bool hasChannel(ChannelPtr channel) const
+    virtual Timestamp poll(int timeoutMs, vector<Channel *> &activeChannels) = 0;
+    virtual void addChannel(Channel *channel) = 0;
+    virtual void delChannel(Channel *channel) = 0;
+    virtual void updateChannel(Channel *channel) = 0;
+    virtual bool hasChannel(Channel *channel) const
     {
-        map<int, ChannelPtr>::const_iterator it = m_mapChannel.find(channel->fd());
+        map<int, Channel *>::const_iterator it = m_mapChannel.find(channel->fd());
         return it != m_mapChannel.end() && it->second == channel;
     }
 
 protected:
-    map<int, ChannelPtr> m_mapChannel;
+    map<int, Channel *> m_mapChannel;
 };
 
 }

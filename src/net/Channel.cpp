@@ -16,53 +16,72 @@ const int KNoneEvent = 0;
 const int KReadEvent = POLLIN | POLLPRI;
 const int KWriteEvent = POLLOUT;
 
-Channel::Channel(EventLoopPtr eventLoop, int fd)
-    : m_index(-1), m_fd(fd), m_eventLoop(eventLoop), 
-      m_events(KNoneEvent), m_revents(KNoneEvent) 
+Channel::Channel(EventLoop *eventLoop, int fd)
+    : m_index(-1), m_fd(fd), m_eventLoop(eventLoop), m_added(false),
+      m_events(KNoneEvent), m_revents(KNoneEvent)
 {
-    m_eventLoop->addChannel(shared_from_this());
 }
 
 Channel::~Channel()
 {
-    m_eventLoop->delChannel(shared_from_this());
+    remove();
+}
+
+void Channel::update()
+{
+    if(!m_added)
+    {
+        m_added = true;
+        m_eventLoop->addChannel(this);
+    }else
+    {
+        m_eventLoop->updateChannel(this);
+    }
+}
+
+void Channel::remove()
+{
+    if(m_added)
+    {
+        m_eventLoop->delChannel(this);
+    }
 }
 
 void Channel::enableRead()
 {
     m_events |= KReadEvent;    
-    m_eventLoop->updateChannel(shared_from_this());
+    update();
 }
 
 void Channel::disableRead()
 {
     m_events &= ~KReadEvent;    
-    m_eventLoop->updateChannel(shared_from_this());
+    update();
 }
 
 void Channel::enableWrite()
 {
     m_events |= KWriteEvent;    
-    m_eventLoop->updateChannel(shared_from_this());
+    update();
 }
 
 void Channel::disableWrite()
 {
     m_events &= ~KWriteEvent;    
-    m_eventLoop->updateChannel(shared_from_this());
+    update();
 }
 
 void Channel::enableAll()
 {
     m_events |= KReadEvent;
     m_events |= KWriteEvent;
-    m_eventLoop->updateChannel(shared_from_this());
+    update();
 }
 
 void Channel::disableAll()
 {
     m_events = KNoneEvent;
-    m_eventLoop->updateChannel(shared_from_this());
+    update();
 }
 
 bool Channel::isWriting() const

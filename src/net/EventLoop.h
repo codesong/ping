@@ -19,14 +19,16 @@
 namespace ping
 {
 using std::vector;
+
 // 不开线程，就非线程安全(类似STL的vector，需外部保证线程安全)
-class EventLoop: Noncopyable, public std::enable_shared_from_this<EventLoop>
+class EventLoop: Noncopyable
 {
 public:
     using Functor = std::function<void()>;
     using MutexPtr = std::unique_ptr<Mutex>;
     using ThreadPtr = std::unique_ptr<Thread>;
     using PollerPtr = std::unique_ptr<Poller>;
+    using ChannelPtr = std::unique_ptr<Channel>;
 
 public:
     EventLoop(bool threadOn, const string &threadName = "");
@@ -35,12 +37,13 @@ public:
     void start();
     void stop();
 
-    void addChannel(ChannelPtr channel);
-    void delChannel(ChannelPtr channel);
-    void updateChannel(ChannelPtr channel);
-    bool hasChannel(ChannelPtr channel);
+    void addChannel(Channel *channel);
+    void delChannel(Channel *channel);
+    void updateChannel(Channel *channel);
+    bool hasChannel(Channel *channel);
 
-    void executeInLoop(Functor cb);
+    void runInLoop(Functor cb);
+    bool inLoopThread();
     void checkThread();
 
 private:
@@ -48,19 +51,18 @@ private:
     void wakeup();
     void handleWakeup();
 
-    void executeFunctors();
-    bool inCreatedThread() const { return m_threadId == Util::currThreadId(); }
+    void runFunctors();
 
 private:
     const int m_wakeupFd;
-    ChannelPtr m_wakeupChannel; 
     pid_t m_threadId;
     MutexPtr  m_mutex;
     ThreadPtr m_thread;
     PollerPtr m_poller; 
     atomic<bool> m_running;
+    ChannelPtr m_wakeupChannel; 
     vector<Functor> m_vecFunctor;
-    vector<ChannelPtr> m_vecActiveChannel;
+    vector<Channel *> m_vecActiveChannel;
 };
 
 }

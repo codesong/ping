@@ -8,6 +8,7 @@
 #ifndef __CONNECTION_H__
 #define __CONNECTION_H__
 
+#include <string>
 #include <memory>
 #include "Buffer.h"
 #include "Channel.h"
@@ -18,7 +19,6 @@
 namespace ping
 {
 
-class Channel;
 class EventLoop;
 class Connection;
 
@@ -27,11 +27,16 @@ using CloseCallback = std::function<void (const ConnectionPtr)>;
 using ConnectCallback = std::function<void (const ConnectionPtr)>;
 using DisconnectCallback = std::function<void (const ConnectionPtr)>;
 using WriteCompleteCallback = std::function<void (const ConnectionPtr)>;
+using HighWaterMarkCallback = std::function<void (const ConnectionPtr)>;
 using MessageCallback = std::function<void (const ConnectionPtr, Buffer &buffer, const Timestamp &recvTime)>;
+
+using std::string;
+using std::string_view;
 
 class Connection: Noncopyable, public std::enable_shared_from_this<Connection>
 {
 public:
+    using ChannelPtr = std::unique_ptr<Channel>;
     using EventLoopPtr = std::shared_ptr<EventLoop>;
 
     Connection(EventLoopPtr eventLoop, const string &name, int sockfd, 
@@ -46,9 +51,22 @@ public:
     void setMessageCallback(const MessageCallback &cb) { m_messageCallback = cb; }
     void setDisconnectCallback(const DisconnectCallback &cb) { m_disconnectCallback = cb; }
     void setWriteCompleteCallback(const WriteCompleteCallback &cb) { m_writeCompleteCallback = cb; }
+    void setHighWaterMarkCallback(const HighWaterMarkCallback &cb, size_t highWaterMark) 
+    { 
+        m_highWaterMarkCallback = cb; 
+        m_highWaterMark = highWaterMark;
+    }
 
-    string getConnectionInfo() const;
-    EventLoopPtr getEventLoop() { return m_eventLoop };
+    string name() { return m_name; }
+    string connectionInfo() const;
+    EventLoopPtr eventLoop() { return m_eventLoop; }
+    const InetAddress &localAddr() const { return m_localAddr; }
+    const InetAddress &peerAddr() const { return m_peerAddr; }
+
+    void send(Buffer &message);
+    void send(const string_view &message);
+    void send(const void *data, int len);
+    void sendInLoop(const void *data, size_t len);
 
 private:
     void handleRead(const Timestamp &time);
@@ -58,18 +76,21 @@ private:
 
 private:
     const int m_sockfd;
-    const InetAddress m_localAddr;
-    const InetAddress m_peerAddr;
+    const string m_name;
+    ChannelPtr m_channel;
     Buffer m_inputBuffer;
     Buffer m_outputBuffer;
-    Channel m_channel;
+    size_t m_highWaterMark; // 用于防止发送数据过快
     EventLoopPtr m_eventLoop;
+    const InetAddress m_localAddr;
+    const InetAddress m_peerAddr;
 
     CloseCallback m_closeCallback;
     ConnectCallback m_connectCallback;
     MessageCallback m_messageCallback;
     DisconnectCallback m_disconnectCallback;
     WriteCompleteCallback m_writeCompleteCallback;
+    HighWaterMarkCallback m_highWaterMarkCallback;
 };
 }
 

@@ -19,13 +19,13 @@ public:
     Poll() = default; 
     ~Poll();
 
-    Timestamp poll(int timeoutMs, vector<ChannelPtr> &activeChannels) override;
-    void addChannel(ChannelPtr channel) override;
-    void delChannel(ChannelPtr channel) override;
-    void updateChannel(ChannelPtr channel) override;
+    Timestamp poll(int timeoutMs, vector<Channel *> &activeChannels) override;
+    void addChannel(Channel *channel) override;
+    void delChannel(Channel *channel) override;
+    void updateChannel(Channel *channel) override;
 
 private:
-    void fillActiveChannels(int numEvents, vector<ChannelPtr> &activeChannels);
+    void fillActiveChannels(int numEvents, vector<Channel *> &activeChannels);
 
 private:
     vector<struct pollfd> m_vecPollfd;

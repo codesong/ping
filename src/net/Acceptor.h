@@ -20,14 +20,16 @@ class InetAddress;
 class Acceptor: Noncopyable
 {
 public:
-    using EventLoopPtr = std::shared_ptr<EventLoop>;
     using NewConnectionCallback = std::function<void(int sockfd, const InetAddress &)>;
 
-    Acceptor(EventLoopPtr eventLoop, const NewConnectionCallback &cb,  const InetAddress &listenAddr, bool reusePort);
+    Acceptor(EventLoop *eventLoop, const InetAddress &listenAddr, bool reusePort);
     ~Acceptor();
 
-private:
+    void setNewConnectionCallback(const NewConnectionCallback &cb) { m_newConnectionCallback = cb; }
+
     void listen();
+
+private:
     void handleRead();
 
 private:

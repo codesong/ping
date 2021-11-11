@@ -24,6 +24,7 @@ void listen(int sockfd);
 int accept(int sockfd, InetAddress &addr);
 int connect(int sockfd, const InetAddress &addr);
 void close(int sockfd);
+int socketError(int sockfd);
 
 ssize_t read(int sockfd, void *buf, size_t count);
 ssize_t write(int sockfd, const void *buf, size_t count);
@@ -35,6 +36,12 @@ uint64_t hton64(uint64_t host);
 uint16_t ntoh16(uint16_t net);
 uint32_t ntoh32(uint32_t net);
 uint64_t ntoh64(uint64_t net);
+
+struct sockaddr_in6 localAddr(int sockfd);
+struct sockaddr_in6 peerAddr(int sockfd);
+// 自连接，同主机的两个客户端分配同一个端口号发起连接
+bool isSelfConnect(int sockfd);
+
 
 } // namespace Socket
 } // namespace ping

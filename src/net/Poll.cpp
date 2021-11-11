@@ -19,7 +19,7 @@ Poll::~Poll()
     m_vecPollfd.clear();
 }
 
-Timestamp Poll::poll(int timeoutMs, vector<ChannelPtr> &activeChannels)
+Timestamp Poll::poll(int timeoutMs, vector<Channel *> &activeChannels)
 {
     int numEvents = ::poll(&m_vecPollfd[0], m_vecPollfd.size(), timeoutMs);
     int errorNo = errno;
@@ -41,9 +41,9 @@ Timestamp Poll::poll(int timeoutMs, vector<ChannelPtr> &activeChannels)
     return now;
 }
 
-void Poll::addChannel(ChannelPtr channel)
+void Poll::addChannel(Channel *channel)
 {
-    map<int, ChannelPtr>::iterator it = m_mapChannel.find(channel->fd());
+    map<int, Channel *>::iterator it = m_mapChannel.find(channel->fd());
     if(it != m_mapChannel.end())
     {
         LOG_FATAL << "fd[" << channel->fd() << "] is exist.";
@@ -61,7 +61,7 @@ void Poll::addChannel(ChannelPtr channel)
     }
 }
 
-void Poll::delChannel(ChannelPtr channel)
+void Poll::delChannel(Channel *channel)
 {
     LOG_TRACE << "delChannel fd = " << channel->fd();
     m_mapChannel.erase(channel->fd());
@@ -79,21 +79,21 @@ void Poll::delChannel(ChannelPtr channel)
     }
 }
 
-void Poll::updateChannel(ChannelPtr channel)
+void Poll::updateChannel(Channel *channel)
 {
     struct pollfd &pfd = m_vecPollfd[channel->index()];
     pfd.events = static_cast<short>(channel->events());
 }
 
-void Poll::fillActiveChannels(int numEvents, vector<ChannelPtr> &activeChannels)
+void Poll::fillActiveChannels(int numEvents, vector<Channel *> &activeChannels)
 {
     for(const pollfd &pfd: m_vecPollfd)
     {
         if(pfd.revents > 0) 
         {
             if(numEvents-- <= 0) break;
-            map<int, ChannelPtr>::iterator it = m_mapChannel.find(pfd.fd);
-            ChannelPtr channel = it->second;
+            map<int, Channel *>::iterator it = m_mapChannel.find(pfd.fd);
+            Channel *channel = it->second;
             channel->setRevents(pfd.revents);
             activeChannels.push_back(channel);
         }

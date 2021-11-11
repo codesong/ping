@@ -5,10 +5,11 @@
 * Created Time: 2021年09月13日 星期一 15时07分43秒
 *************************************************************************/
 
+#include "EPoll.h"
+#include "Socket.h"
+#include "../Log.h"
 #include "EventLoop.h"
 #include "../Timestamp.h"
-#include "../Log.h"
-#include "Socket.h"
 #include <unistd.h>
 #include <sys/eventfd.h>
 
@@ -19,17 +20,17 @@ const int KPollTimeoutMs = 10000;
 thread_local bool t_existEventLoop = false;
 
 EventLoop::EventLoop(bool threadOn, const string &threadName)
-    : m_running(false), m_mutex(threadOn ? new Mutex : nullptr), 
+    : m_running(false), m_mutex(threadOn ? new Mutex : nullptr), m_poller(new EPoll()),
       m_thread(threadOn ? new Thread(std::bind(&EventLoop::loop, this), threadName) : nullptr),
-      m_wakeupFd(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)) 
+      m_wakeupFd(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC))
 {
     if(m_wakeupFd < 0)
     {
         LOG_FATAL << "eventfd failed";
     }
 
-    m_wakeupChannel = std::make_shared<Channel>(shared_from_this(), m_wakeupFd);
-
+    m_wakeupChannel = std::make_unique<Channel>(this, m_wakeupFd);
+    m_wakeupChannel->setReadCallback(std::bind(&EventLoop::handleWakeup, this));
     if(t_existEventLoop)
     {
         LOG_FATAL << "Another EventLoop exists in this thread.";
@@ -50,8 +51,8 @@ EventLoop::~EventLoop()
 
 void EventLoop::start()
 {
-    checkThread();
     m_running = true;
+    m_wakeupChannel->enableRead();
     if(m_thread)
     {
         m_thread->start();
@@ -64,7 +65,7 @@ void EventLoop::start()
 void EventLoop::stop()
 {
     m_running = false;
-    if(!inCreatedThread())
+    if(!inLoopThread())
     {
         wakeup();
     }
@@ -79,15 +80,15 @@ void EventLoop::loop()
         m_vecActiveChannel.clear();
         Timestamp pollTime = m_poller->poll(KPollTimeoutMs, m_vecActiveChannel);
 
-        for(ChannelPtr channel: m_vecActiveChannel)
+        for(Channel *channel: m_vecActiveChannel)
         {
             channel->handleEvent(pollTime);
         }
-        executeFunctors();
+        runFunctors();
     }
 }
 
-void EventLoop::executeFunctors()
+void EventLoop::runFunctors()
 {
     vector<Functor> vecFunctor;
     if(m_mutex)
@@ -105,34 +106,34 @@ void EventLoop::executeFunctors()
     }
 }
 
-void EventLoop::addChannel(ChannelPtr channel)
+void EventLoop::addChannel(Channel *channel)
 {
     checkThread();
     m_poller->addChannel(channel);
 }
 
-void EventLoop::delChannel(ChannelPtr channel)
+void EventLoop::delChannel(Channel *channel)
 {
     checkThread();
     m_poller->delChannel(channel);
 }
 
-void EventLoop::updateChannel(ChannelPtr channel)
+void EventLoop::updateChannel(Channel *channel)
 {
     checkThread();
     m_poller->updateChannel(channel);
 }
 
-bool EventLoop::hasChannel(ChannelPtr channel)
+bool EventLoop::hasChannel(Channel *channel)
 {
     checkThread();
     return m_poller->hasChannel(channel);
 }
 
 // 可能由其他线程调用
-void EventLoop::executeInLoop(Functor cb)
+void EventLoop::runInLoop(Functor cb)
 {
-    if(inCreatedThread())
+    if(inLoopThread())
     {
         cb();
     }else
@@ -150,9 +151,14 @@ void EventLoop::executeInLoop(Functor cb)
     }
 }
 
+bool EventLoop::inLoopThread()
+{
+    return m_threadId == Util::currThreadId();
+}
+
 void EventLoop::checkThread() 
 {
-    if(!inCreatedThread())
+    if(!inLoopThread())
     {
         LOG_FATAL << "EventLoop was created in thread " << m_threadId 
             << ", current thread " << Util::currThreadId();

@@ -9,6 +9,7 @@
 #define __BUFFER_H__
 
 #include <vector>
+#include <string>
 #include <string.h>
 #include <algorithm>
 #include "Socket.h"
@@ -109,6 +110,18 @@ public:
         memcpy(&be64, readBegin(), sizeof(be64));
         hasRead(sizeof(be64));
         return Socket::ntoh64(be64);
+    }
+
+    std::string read(size_t len)
+    {
+        std::string result(peek(), len);
+        hasRead(len);
+        return result;
+    }
+
+    std::string readAll()
+    {
+        return read(readableBytes());
     }
 
     char *writeBegin() { return begin() + m_writerIndex; }

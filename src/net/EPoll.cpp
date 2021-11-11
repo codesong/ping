@@ -35,7 +35,7 @@ EPoll::~EPoll()
     Socket::close(m_epollfd);
 }
 
-Timestamp EPoll::poll(int timeoutMs, vector<ChannelPtr> &activeChannels)
+Timestamp EPoll::poll(int timeoutMs, vector<Channel *> &activeChannels)
 {
     int numEvents = ::epoll_wait(m_epollfd, &m_vecEvent[0], m_vecEvent.size(), timeoutMs);
     int errorNo = errno;
@@ -62,10 +62,11 @@ Timestamp EPoll::poll(int timeoutMs, vector<ChannelPtr> &activeChannels)
     return now;
 }
 
-void EPoll::addChannel(ChannelPtr channel)
+void EPoll::addChannel(Channel *channel)
 {
     struct epoll_event event;
     event.events = channel->events();
+    event.data.fd = channel->fd();
     m_mapChannel[channel->fd()] = channel;
     int ret = ::epoll_ctl(m_epollfd, EPOLL_CTL_ADD, channel->fd(), &event); 
     if(ret < 0)
@@ -74,7 +75,7 @@ void EPoll::addChannel(ChannelPtr channel)
     }
 }
 
-void EPoll::delChannel(ChannelPtr channel)
+void EPoll::delChannel(Channel *channel)
 {
     struct epoll_event event;
     m_mapChannel.erase(channel->fd());
@@ -86,10 +87,11 @@ void EPoll::delChannel(ChannelPtr channel)
     }
 }
 
-void EPoll::updateChannel(ChannelPtr channel)
+void EPoll::updateChannel(Channel *channel)
 {
     struct epoll_event event;
     event.events = channel->events();
+    event.data.fd = channel->fd();
     int ret = ::epoll_ctl(m_epollfd, EPOLL_CTL_MOD, channel->fd(), &event); 
     if(ret < 0)
     {
@@ -97,14 +99,18 @@ void EPoll::updateChannel(ChannelPtr channel)
     }
 }
 
-void EPoll::fillActiveChannels(int numEvents, vector<ChannelPtr> &activeChannels)
+void EPoll::fillActiveChannels(int numEvents, vector<Channel *> &activeChannels)
 {
-    map<int, ChannelPtr> m_mapChannel;
     for(int i = 0; i < numEvents; ++i)
     {
-        map<int, ChannelPtr>::iterator it = m_mapChannel.find(m_vecEvent[i].data.fd); 
-        ChannelPtr channel = it->second;
-        channel->setRevents(m_vecEvent[i].events);
+        struct epoll_event &event = m_vecEvent[i];
+        map<int, Channel *>::iterator it = m_mapChannel.find(event.data.fd); 
+        if(it == m_mapChannel.end())
+        {
+            LOG_FATAL << "EPoll fd[" << event.data.fd << "] not found"; 
+        }
+        Channel *channel = it->second;
+        channel->setRevents(event.events);
         activeChannels.push_back(channel);
     }
 }

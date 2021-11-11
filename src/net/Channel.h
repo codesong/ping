@@ -17,13 +17,13 @@ namespace ping
 {
 
 class EventLoop;
-class Channel: Noncopyable, public std::enable_shared_from_this<Channel>
+class Channel: Noncopyable
 {
 public:
-    using EventCallback = std::function<void(const Timestamp&)>;
     using EventLoopPtr = std::shared_ptr<EventLoop>;
+    using EventCallback = std::function<void(const Timestamp&)>;
 
-    Channel(EventLoopPtr eventLoop, int fd);
+    Channel(EventLoop *eventLoop, int fd);
     ~Channel();
 
     void setReadCallback(EventCallback cb) { m_readCallback = std::move(cb); }
@@ -49,12 +49,18 @@ public:
     bool isWriting() const;
     bool isReading() const;
 
+    void remove();
+
+private:
+    void update();
+
 private:
     int m_events;
     int m_revents;
     const int m_fd;
     int m_index;
-    EventLoopPtr m_eventLoop;
+    bool m_added;
+    EventLoop *m_eventLoop;
 
     EventCallback m_readCallback;
     EventCallback m_writeCallback;
@@ -62,7 +68,6 @@ private:
     EventCallback m_errorCallback;
 };
 
-using ChannelPtr = std::shared_ptr<Channel>;
 }
 
 #endif
