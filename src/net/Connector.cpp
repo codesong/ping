@@ -7,13 +7,13 @@
 
 #include "Socket.h"
 #include "Connector.h"
-#include "../Log.cpp"
+#include "../Log.h"
 
 namespace ping
 {
 
 using std::placeholders::_1;
-Connector::Connector(EventLoopPtr eventLoop, const InetAddress &serverAddr)
+Connector::Connector(EventLoop *eventLoop, const InetAddress &serverAddr)
     : m_connect(false), m_state(KDisconnected), 
       m_eventLoop(eventLoop), m_serverAddr(serverAddr)
 {
@@ -21,6 +21,13 @@ Connector::Connector(EventLoopPtr eventLoop, const InetAddress &serverAddr)
 
 Connector::~Connector()
 {
+    m_connect = false;
+    if(KConnecting == m_state)
+    {
+        // 正在连接，则直接停止连接，状态设置为断开
+        m_state = KDisconnected;
+        resetChannel();
+    }
 }
 
 void Connector::connect()
@@ -33,20 +40,15 @@ void Connector::reconnect()
     m_eventLoop->runInLoop(std::bind(&Connector::realReconnect, this));
 }
 
-void Connector::disconnect()
-{
-    m_eventLoop->runInLoop(std::bind(&Connector::realDisconnect, this));
-}
+void Connector::realConnect() 
+{ 
+    if(m_connect) 
+    { 
+        LOG_FATAL << "Connector has request connect."; 
+    } 
+    m_connect = true; 
 
-void Connector::realConnect()
-{
-    if(m_connect)
-    {
-        LOG_FATAL << "Connector has request connect.";
-    }
-    m_connect = true;
-
-    int connectFd = Socket::createTcpSocket(m_serverAddr.family());
+    int connectFd = Socket::createTcpSocket(m_serverAddr.family()); 
     if(connectFd < 0)
     {
         LOG_FATAL << "Socket::createTcpSocket error.";
@@ -107,15 +109,6 @@ void Connector::realReconnect()
     realConnect();
 }
 
-void Connector::realDisconnect()
-{
-    if(!m_connect)
-    {
-        LOG_FATAL << "Connector has  request disconnect.";
-    }
-    m_connect = false;
-}
-
 void Connector::retry(int connectFd)
 {
     Socket::close(connectFd);
@@ -135,7 +128,6 @@ int Connector::resetChannel()
     // 检查连接状态后，将Channel重置
     int connectFd = m_channel->fd();
     m_channel->disableAll();
-    m_channel->remove();
     m_channel.reset();
     return connectFd;
 }
@@ -160,7 +152,7 @@ void Connector::handleWrite(const Timestamp &time)
             m_state = KConnected;
             if(m_connect)
             {
-                m_newConnectionCallback(connectFd);
+                m_newConnectionCallback(connectFd, m_serverAddr);
             }else
             {
                 Socket::close(connectFd);
@@ -181,4 +173,5 @@ void Connector::handleError(const Timestamp &time)
     }
 }
 
+}
 

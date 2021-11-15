@@ -24,7 +24,10 @@ Channel::Channel(EventLoop *eventLoop, int fd)
 
 Channel::~Channel()
 {
-    remove();
+    if(m_added)
+    {
+        m_eventLoop->delChannel(this);
+    }
 }
 
 void Channel::update()
@@ -36,14 +39,6 @@ void Channel::update()
     }else
     {
         m_eventLoop->updateChannel(this);
-    }
-}
-
-void Channel::remove()
-{
-    if(m_added)
-    {
-        m_eventLoop->delChannel(this);
     }
 }
 

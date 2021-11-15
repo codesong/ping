@@ -9,22 +9,31 @@
 #define __TCPCLIENT_H__
 
 #include "EventLoop.h"
+#include "Connector.h"
+#include "Connection.h"
 
 namespace ping
 {
 class TcpClient: Noncopyable
 {
 public:
-    TcpClient(const InetAddress &serverAddr, const string &name);
+    TcpClient(EventLoop *eventLoop, const InetAddress &serverAddr, const string &name);
     ~TcpClient();
 
-    void connect();
+    void connect(bool reconnect = true);
     void disconnect();
 
     void send();
 
 private:
-    EventLoop m_eventLoop;
+    void newConnection(int sockfd, const InetAddress &serverAddr);
+    void disconnection(const ConnectionPtr &conn);
+
+private:
+    bool m_reconnect; // 自动重连
+    const string m_name;
+    Connector m_connector;
+    EventLoop *m_eventLoop;
     ConnectionPtr m_connection;
 
 };

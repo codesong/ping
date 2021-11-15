@@ -18,19 +18,22 @@ class Connector: Noncopyable
 {
 public:
     using ChannelPtr = std::unique_ptr<Channel>;
-    using EventLoopPtr = std::shared_ptr<EventLoop>;
+    using NewConnectionCallback = std::function<void(int sockfd, const InetAddress &)>;
 
-    Connector(EventLoopPtr eventLoop, const InetAddress &serverAddr);
+    Connector(EventLoop *eventLoop, const InetAddress &serverAddr);
     ~Connector();
+
+    void setNewConnectionCallback(const NewConnectionCallback &cb)
+    {
+        m_newConnectionCallback = cb;
+    }
 
     void connect(); 
     void reconnect(); 
-    void disconnect();
 
 private:
     void realConnect();
     void realReconnect();
-    void realDisconnect();
     void connecting(int connectFd);
     void retry(int connectFd);
     int resetChannel();
@@ -49,8 +52,9 @@ private:
     bool m_connect;
     States m_state;
     ChannelPtr m_channel; 
-    EventLoopPtr m_eventLoop;
-    InetAddress m_serverAddr;
+    EventLoop *m_eventLoop;
+    const InetAddress m_serverAddr;
+    NewConnectionCallback m_newConnectionCallback;
 };
 }
 

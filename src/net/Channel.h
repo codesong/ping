@@ -49,8 +49,6 @@ public:
     bool isWriting() const;
     bool isReading() const;
 
-    void remove();
-
 private:
     void update();
 
