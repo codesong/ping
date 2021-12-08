@@ -13,7 +13,7 @@ namespace ping
 {
 
 using std::placeholders::_1;
-Connector::Connector(EventLoop *eventLoop, const InetAddress &serverAddr)
+Connector::Connector(EventLoopPtr eventLoop, const InetAddress &serverAddr)
     : m_connect(false), m_state(KDisconnected), 
       m_eventLoop(eventLoop), m_serverAddr(serverAddr)
 {
@@ -28,6 +28,7 @@ Connector::~Connector()
         m_state = KDisconnected;
         resetChannel();
     }
+    LOG_TRACE << "~Connector.";
 }
 
 void Connector::connect()
@@ -97,9 +98,10 @@ void Connector::connecting(int connectFd)
     // connect成功，fd可读(发送缓冲区空闲)；connect失败，fd可读可写。
     // 故通过可写去检查连接状态
     m_state = KConnecting;
-    m_channel = std::make_unique<Channel>(m_eventLoop, connectFd);
+    m_channel = std::make_unique<Channel>(m_eventLoop.get(), connectFd);
     m_channel->setWriteCallback(std::bind(&Connector::handleWrite, this, _1));
     m_channel->setErrorCallback(std::bind(&Connector::handleError, this, _1));
+    LOG_TRACE << "Connector fd " << connectFd << " enableWrite.";
     m_channel->enableWrite();
 }
 
@@ -127,7 +129,9 @@ int Connector::resetChannel()
 {
     // 检查连接状态后，将Channel重置
     int connectFd = m_channel->fd();
+    LOG_TRACE << "Connector fd " << connectFd << " disableAll, resetChannel.";
     m_channel->disableAll();
+    m_channel->destory();
     m_channel.reset();
     return connectFd;
 }

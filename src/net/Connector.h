@@ -20,7 +20,7 @@ public:
     using ChannelPtr = std::unique_ptr<Channel>;
     using NewConnectionCallback = std::function<void(int sockfd, const InetAddress &)>;
 
-    Connector(EventLoop *eventLoop, const InetAddress &serverAddr);
+    Connector(EventLoopPtr eventLoop, const InetAddress &serverAddr);
     ~Connector();
 
     void setNewConnectionCallback(const NewConnectionCallback &cb)
@@ -41,7 +41,7 @@ private:
     void handleError(const Timestamp &time);
 
 private:
-    enum States
+    enum State
     {
         KDisconnected,
         KConnecting,
@@ -50,9 +50,9 @@ private:
 
 private:
     bool m_connect;
-    States m_state;
+    State m_state;
     ChannelPtr m_channel; 
-    EventLoop *m_eventLoop;
+    EventLoopPtr m_eventLoop;
     const InetAddress m_serverAddr;
     NewConnectionCallback m_newConnectionCallback;
 };

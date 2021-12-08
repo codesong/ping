@@ -5,6 +5,7 @@
 * Created Time: 2021年08月10日 星期二 23时42分56秒
 *************************************************************************/
 
+#include <inttypes.h>
 #include "Timestamp.h"
 
 namespace ping
@@ -21,6 +22,7 @@ Timestamp Timestamp::addSeconds(double seconds)
     int64_t microSeconds = seconds * KMicroSecondsPerSecond;
     return Timestamp(microSecondsSinceEpoch() + microSeconds);
 }
+
 /*
     YYYY,
     YYYYMM,
@@ -35,8 +37,9 @@ Timestamp Timestamp::addSeconds(double seconds)
     YYYYMMDDHHMMSS2,
     YYYYMMDDHHMMSSMS,
     YYYYMMDDHHMMSSMS2,
-    */
-string Timestamp::toString(TimeFmt fmt)
+    DEFAULT,
+*/
+string Timestamp::toString(TimeFmt fmt) const
 {
     char buf[64] = {0x00};
     struct tm t = *localtime(&m_time.tv_sec);
@@ -86,6 +89,9 @@ string Timestamp::toString(TimeFmt fmt)
         break;
     case YYYYMMDDHHMMSSMS4:
         snprintf(buf, sizeof(buf), "%.4d%.2d%.2d%.2d%.2d%.2d.%.6d", t.tm_year+1900, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, m_time.tv_usec);
+        break;
+    default:
+        snprintf(buf, sizeof(buf), "%" PRId64 ".%06" PRId64 "", m_time.tv_sec, m_time.tv_usec);
         break;
     }
     return buf;

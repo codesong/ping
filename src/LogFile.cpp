@@ -64,7 +64,7 @@ size_t LogFile::File::write(const char *data, size_t len)
 
 LogFile::LogFile(const string &logDir, const string &baseName, off_t rollSize, bool threadSafe)
     : m_logDir(logDir), m_baseName(baseName), m_rollSize(rollSize), 
-      m_mutex(threadSafe ? new Mutex : nullptr)
+      m_mutex(threadSafe ? std::make_unique<Mutex>() : nullptr)
 {
     rollFile();
 }

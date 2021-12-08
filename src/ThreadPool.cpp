@@ -24,7 +24,8 @@ ThreadPool::ThreadPool(Task initThread, int threadNum, int taskQueueSize, const 
         m_vecThread.reserve(threadNum);
         for(int i = 0; i < threadNum; ++i)
         {
-            m_vecThread.emplace_back(new Thread(std::bind(&ThreadPool::run, this), m_name + std::to_string(i+1)));
+            m_vecThread.emplace_back(std::make_unique<Thread>(
+                std::bind(&ThreadPool::run, this), m_name + std::to_string(i+1)));
         }
     }
 }

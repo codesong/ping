@@ -16,7 +16,7 @@ namespace ping
 class EventLoopPool: Noncopyable
 {
 public:
-    using EventLoopPtr = std::shared_ptr<EventLoop>;
+    using EventLoopThreadPtr = std::unique_ptr<EventLoopThread>;
 
     EventLoopPool(const string &name = "", int threadNum = 0);
     ~EventLoopPool();
@@ -28,8 +28,8 @@ public:
 
 private:
     int m_current;
-    atomic<bool> m_running;
-    vector<EventLoopPtr> m_vecIoLoop;
+    vector<EventLoopThreadPtr> m_vecEventLoop;
+
 };
 
 }

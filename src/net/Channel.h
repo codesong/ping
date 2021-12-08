@@ -20,7 +20,6 @@ class EventLoop;
 class Channel: Noncopyable
 {
 public:
-    using EventLoopPtr = std::shared_ptr<EventLoop>;
     using EventCallback = std::function<void(const Timestamp&)>;
 
     Channel(EventLoop *eventLoop, int fd);
@@ -37,6 +36,7 @@ public:
     void disableWrite();
     void enableAll();
     void disableAll();
+    void destory();
 
     void handleEvent(const Timestamp &time);
 

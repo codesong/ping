@@ -26,15 +26,14 @@ class TcpServer: Noncopyable
 {
 public:
     using AcceptorPtr = std::unique_ptr<Acceptor>;
-    using EventLoopPtr = std::shared_ptr<EventLoop>;
 
-    TcpServer(const InetAddress &serverAddr, const string &name = "", int threadNum = 0, bool reusePort = false);
+    TcpServer(const InetAddress &serverAddr, const string &name = "", 
+        EventLoopPtr baseLoop = nullptr, int threadNum = 0, bool reusePort = false);
     ~TcpServer();
 
     void start();
     void stop();
 
-    void setCloseCallback(const CloseCallback &cb) { m_closeCallback = cb; }
     void setConnectCallback(const ConnectCallback &cb) { m_connectCallback = cb; }
     void setMessageCallback(const MessageCallback &cb) { m_messageCallback = cb; }
     void setDisconnectCallback(const DisconnectCallback &cb) { m_disconnectCallback = cb; }
@@ -51,9 +50,9 @@ private:
     int m_nextConnId;
     InetAddress m_localAddr; 
     AcceptorPtr m_acceptor;
-    EventLoop m_baseLoop; 
+    EventLoopPtr m_baseLoop;
+    const bool m_commBaseLoop;
     EventLoopPool m_eventLoopPool;
-    CloseCallback m_closeCallback;
     ConnectCallback m_connectCallback;
     MessageCallback m_messageCallback;
     DisconnectCallback m_disconnectCallback;

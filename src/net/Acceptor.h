@@ -22,7 +22,7 @@ class Acceptor: Noncopyable
 public:
     using NewConnectionCallback = std::function<void(int sockfd, const InetAddress &)>;
 
-    Acceptor(EventLoop *eventLoop, const InetAddress &listenAddr, bool reusePort);
+    Acceptor(EventLoopPtr eventLoop, const InetAddress &listenAddr, bool reusePort);
     ~Acceptor();
 
     void setNewConnectionCallback(const NewConnectionCallback &cb) { m_newConnectionCallback = cb; }
@@ -35,7 +35,7 @@ private:
 private:
     int m_idleFd;
     const int m_listenFd;
-    Channel m_acceptChannel;
+    Channel m_channel;
     NewConnectionCallback m_newConnectionCallback;
 };
 }

@@ -36,6 +36,8 @@ Connection::~Connection()
 void Connection::connected()
 {
     m_eventLoop->checkThread();
+    m_state = KConnected;
+    LOG_TRACE <<  "Connection fd " << m_sockfd << " enableRead, connected.";
     m_channel->enableRead();
     m_connectCallback(shared_from_this());
 }
@@ -43,9 +45,49 @@ void Connection::connected()
 void Connection::disconnected()
 {
     m_eventLoop->checkThread();
-    m_channel->disableAll();
-    m_connectCallback(shared_from_this());
+    if(KConnected == m_state)
+    {
+        m_state = KDisconnected;
+        LOG_TRACE <<  "Connection fd " << m_sockfd << " disableAll, disconnected.";
+        m_channel->disableAll();
+        m_connectCallback(shared_from_this());
+    }
+}
 
+void Connection::shutdown()
+{
+    if(KConnected == m_state)
+    {
+        m_state = KDisconnecting;
+        m_eventLoop->runInLoop(std::bind(&Connection::realShutdown, this));
+    }
+}
+
+void Connection::realShutdown()
+{
+    m_eventLoop->checkThread();
+    if(!m_channel->isWriting())
+    {
+        ::shutdown(m_sockfd, SHUT_WR);
+    }
+}
+
+void Connection::close()
+{
+    if(KConnected == m_state || KDisconnecting == m_state)
+    {
+        m_state = KDisconnecting;
+        m_eventLoop->runInLoop(std::bind(&Connection::realClose, this));
+    }
+}
+
+void Connection::realClose()
+{
+    m_eventLoop->checkThread();
+    if(KDisconnecting == m_state)
+    {
+        Socket::close(m_sockfd);
+    }
 }
 
 string Connection::connectionInfo() const
@@ -88,20 +130,26 @@ void Connection::send(const void *data, int len)
     {
         if(m_eventLoop->inLoopThread())
         {
-            sendInLoop(data, len);
+            realSend(data, len);
         }else
         {
-            m_eventLoop->runInLoop(std::bind(&Connection::sendInLoop, this, data, len));
+            m_eventLoop->runInLoop(std::bind(&Connection::realSend, this, data, len));
         }
     }
 }
 
-void Connection::sendInLoop(const void *data, size_t len)
+void Connection::realSend(const void *data, size_t len)
 {
-    m_eventLoop->checkThread();
     ssize_t nwrote = 0;
     size_t remain;
     bool faultError = false;
+    m_eventLoop->checkThread();
+    if(KConnected != m_state)
+    {
+        LOG_WARN << "not connected ready, give up writing.";
+        return;
+    }
+
     // 应用层发送缓冲区为空，且没有关注POLLOUT事件 即应用层当前没有发送中的数据
     if(!m_channel->isWriting() && m_outputBuffer.readableBytes() == 0)
     {
@@ -118,7 +166,7 @@ void Connection::sendInLoop(const void *data, size_t len)
             nwrote = 0;
             if(errno != EWOULDBLOCK)
             {
-                LOG_ERROR << "Connection::sendInLoop";
+                LOG_ERROR << "Connection::realSend";
                 if(errno == EPIPE || errno == ECONNRESET) // 对端关闭
                 {
                     faultError = true;
@@ -186,6 +234,9 @@ void Connection::handleWrite(const Timestamp &time)
 
 void Connection::handleClose(const Timestamp &time)
 {
+    m_eventLoop->checkThread();
+    m_state = KDisconnected;
+    LOG_TRACE <<  "Connection fd " << m_sockfd << " disableAll, handleClose.";
     m_channel->disableAll();
     m_disconnectCallback(shared_from_this());
     m_closeCallback(shared_from_this());

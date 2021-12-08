@@ -68,10 +68,11 @@ void EPoll::addChannel(Channel *channel)
     event.events = channel->events();
     event.data.fd = channel->fd();
     m_mapChannel[channel->fd()] = channel;
+    LOG_TRACE << "epoll_ctl add fd " << channel->fd();
     int ret = ::epoll_ctl(m_epollfd, EPOLL_CTL_ADD, channel->fd(), &event); 
     if(ret < 0)
     {
-        LOG_FATAL << "epoll_ctl add " << channel->fd() << " error";
+        LOG_FATAL << "epoll_ctl add fd " << channel->fd() << " error";
     }
 }
 
@@ -79,11 +80,12 @@ void EPoll::delChannel(Channel *channel)
 {
     struct epoll_event event;
     m_mapChannel.erase(channel->fd());
+    LOG_TRACE << "epoll_ctl del fd " << channel->fd();
     // 最后一个参数, 内核2.6.9之前NULL会有bug，之后可设为NULL
     int ret = ::epoll_ctl(m_epollfd, EPOLL_CTL_DEL, channel->fd(), &event); 
     if(ret < 0)
     {
-        LOG_ERROR << "epoll_ctl del " << channel->fd() << " error";
+        LOG_ERROR << "epoll_ctl del fd " << channel->fd() << " error";
     }
 }
 
@@ -92,10 +94,11 @@ void EPoll::updateChannel(Channel *channel)
     struct epoll_event event;
     event.events = channel->events();
     event.data.fd = channel->fd();
+    LOG_TRACE << "epoll_ctl mod fd " << channel->fd();
     int ret = ::epoll_ctl(m_epollfd, EPOLL_CTL_MOD, channel->fd(), &event); 
     if(ret < 0)
     {
-        LOG_FATAL << "epoll_ctl update " << channel->fd() << " error";
+        LOG_FATAL << "epoll_ctl update fd " << channel->fd() << " error";
     }
 }
 

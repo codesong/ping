@@ -15,9 +15,8 @@
 namespace ping
 {
 
-const int KMicroSecondsPerSecond = 1000 * 1000;
-
 using std::string;
+const int KMicroSecondsPerSecond = 1000 * 1000;
 
 enum TimeFmt
 {
@@ -36,6 +35,7 @@ enum TimeFmt
     YYYYMMDDHHMMSSMS2,
     YYYYMMDDHHMMSSMS3,
     YYYYMMDDHHMMSSMS4,
+    DEFAULT,
 };
 
 class Timestamp
@@ -57,7 +57,7 @@ public:
 
     Timestamp addSeconds(double seconds);
 
-    string toString(TimeFmt fmt);
+    string toString(TimeFmt fmt = DEFAULT) const; 
 
 private:
     struct timeval m_time;

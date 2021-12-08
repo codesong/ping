@@ -20,18 +20,15 @@ namespace ping
 {
 using std::vector;
 
-// 不开线程，就非线程安全(类似STL的vector，需外部保证线程安全)
 class EventLoop: Noncopyable
 {
 public:
     using Functor = std::function<void()>;
-    using MutexPtr = std::unique_ptr<Mutex>;
-    using ThreadPtr = std::unique_ptr<Thread>;
     using PollerPtr = std::unique_ptr<Poller>;
     using ChannelPtr = std::unique_ptr<Channel>;
 
 public:
-    EventLoop(bool threadOn, const string &threadName = "");
+    EventLoop();
     ~EventLoop();
 
     void start();
@@ -56,13 +53,29 @@ private:
 private:
     const int m_wakeupFd;
     pid_t m_threadId;
-    MutexPtr  m_mutex;
-    ThreadPtr m_thread;
+    Mutex  m_mutex;
     PollerPtr m_poller; 
     atomic<bool> m_running;
     ChannelPtr m_wakeupChannel; 
     vector<Functor> m_vecFunctor;
     vector<Channel *> m_vecActiveChannel;
+};
+
+using EventLoopPtr = std::shared_ptr<EventLoop>;
+class EventLoopThread: Noncopyable
+{
+public:
+    EventLoopThread(const string name = "");
+    ~EventLoopThread();
+    
+    EventLoopPtr eventLoop(){ return m_eventLoop; }
+
+private:
+    void threadFunc();
+
+private:
+    Thread m_thread;
+    EventLoopPtr m_eventLoop;
 };
 
 }

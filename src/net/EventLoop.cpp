@@ -19,10 +19,9 @@ namespace ping
 const int KPollTimeoutMs = 10000;
 thread_local bool t_existEventLoop = false;
 
-EventLoop::EventLoop(bool threadOn, const string &threadName)
-    : m_running(false), m_mutex(threadOn ? new Mutex : nullptr), m_poller(new EPoll()),
-      m_thread(threadOn ? new Thread(std::bind(&EventLoop::loop, this), threadName) : nullptr),
-      m_wakeupFd(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC))
+EventLoop::EventLoop()
+    : m_running(false), m_threadId(Util::currThreadId()), 
+      m_poller(std::make_unique<EPoll>()), m_wakeupFd(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC))
 {
     if(m_wakeupFd < 0)
     {
@@ -31,6 +30,8 @@ EventLoop::EventLoop(bool threadOn, const string &threadName)
 
     m_wakeupChannel = std::make_unique<Channel>(this, m_wakeupFd);
     m_wakeupChannel->setReadCallback(std::bind(&EventLoop::handleWakeup, this));
+    LOG_TRACE << "wake up fd " << m_wakeupFd << " enableRead.";
+    m_wakeupChannel->enableRead();
     if(t_existEventLoop)
     {
         LOG_FATAL << "Another EventLoop exists in this thread.";
@@ -45,6 +46,8 @@ EventLoop::~EventLoop()
     if(m_running) stop();
     LOG_DEBUG << "EventLoop " << this << " of thread " << m_threadId << " destruct in thread " << Util::currThreadId();
     m_wakeupChannel->disableAll();
+    m_wakeupChannel->destory();
+    m_wakeupChannel.reset();
     ::close(m_wakeupFd);
     t_existEventLoop = false;
 }
@@ -52,14 +55,7 @@ EventLoop::~EventLoop()
 void EventLoop::start()
 {
     m_running = true;
-    m_wakeupChannel->enableRead();
-    if(m_thread)
-    {
-        m_thread->start();
-    }else
-    {
-        loop();
-    }
+    loop();
 }
 
 void EventLoop::stop()
@@ -69,12 +65,11 @@ void EventLoop::stop()
     {
         wakeup();
     }
-    if(m_thread) m_thread->stop();
 }
 
 void EventLoop::loop()
 {
-    m_threadId = Util::currThreadId();
+    checkThread();
     while(m_running)
     {
         m_vecActiveChannel.clear();
@@ -91,14 +86,10 @@ void EventLoop::loop()
 void EventLoop::runFunctors()
 {
     vector<Functor> vecFunctor;
-    if(m_mutex)
-    {
-        MutexGuard _(*m_mutex);
+    do{
+        MutexGuard _(m_mutex);
         vecFunctor.swap(m_vecFunctor);
-    }else
-    {
-        vecFunctor.swap(m_vecFunctor);
-    }
+    } while(false);
 
     for(const Functor &functor: vecFunctor)
     {
@@ -138,14 +129,10 @@ void EventLoop::runInLoop(Functor cb)
         cb();
     }else
     {
-        if(m_mutex)
-        {
-            MutexGuard _(*m_mutex);
+        do{
+            MutexGuard _(m_mutex);
             m_vecFunctor.push_back(std::move(cb));
-        }else
-        {
-            m_vecFunctor.push_back(std::move(cb));
-        }
+        }while(false);
 
         wakeup();
     }
@@ -184,6 +171,23 @@ void EventLoop::handleWakeup()
     {
         LOG_ERROR << "EventLoop handleWakeup read failed.";
     }
+}
+
+EventLoopThread::EventLoopThread(const string name)
+    : m_thread(std::bind(&EventLoopThread::threadFunc, this), name)
+{
+    m_thread.start();
+}
+
+EventLoopThread::~EventLoopThread()
+{
+    m_thread.stop();
+}
+
+void EventLoopThread::threadFunc()
+{
+    m_eventLoop = std::make_shared<EventLoop>();
+    m_eventLoop->start();
 }
 
 }

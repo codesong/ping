@@ -6,12 +6,13 @@
 *************************************************************************/
 
 #include "../src/Log.h"
+#include "../src/Noncopyable.h"
 #include "../src/net/TcpServer.h"
 #include "../src/net/InetAddress.h"
 
 using namespace ping;
 
-class EchoServer
+class EchoServer: Noncopyable
 {
 public:
     EchoServer(const InetAddress &serverAddr)
@@ -27,22 +28,21 @@ public:
 private:
     void onConnected(const ConnectionPtr conn)
     {
-        LOG_TRACE << conn->peerAddr().ipPort() << " -> "
-            << conn->localAddr().ipPort() << " is UP.";
+        LOG_TRACE << conn->peerAddr().ipPort() << " is UP.";
         LOG_INFO << conn->connectionInfo();
-        conn->send("hello\n");
     }
 
     void onDisconnected(const ConnectionPtr conn)
     {
-        LOG_TRACE << conn->peerAddr().ipPort() << " -> "
-            << conn->localAddr().ipPort() << " is DOWN.";
+        LOG_TRACE << conn->peerAddr().ipPort() << " is DOWN.";
     }
 
     void onMessage(const ConnectionPtr conn, Buffer &buf, const Timestamp &recvTime)
     {
         string msg(buf.readAll());
+        LOG_INFO << "recv " << msg;
         conn->send(msg);
+        LOG_INFO << "send " << msg;
     }
 
 private:
@@ -52,6 +52,7 @@ private:
 
 int main(int argc, char *argv[])
 {
+    LOGGER.init("./log", argv[0], TRACE);
     InetAddress serverAddr(2222);
     EchoServer server(serverAddr);
     server.start();

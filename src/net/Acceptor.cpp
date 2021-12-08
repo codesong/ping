@@ -14,9 +14,9 @@
 
 namespace ping
 {
-Acceptor::Acceptor(EventLoop *eventLoop, const InetAddress &listenAddr, bool reusePort)
+Acceptor::Acceptor(EventLoopPtr eventLoop, const InetAddress &listenAddr, bool reusePort)
     : m_listenFd(Socket::createTcpSocket(listenAddr.family())), 
-      m_acceptChannel(eventLoop, m_listenFd), m_idleFd(open("/dev/null", O_RDONLY | O_CLOEXEC))
+      m_channel(eventLoop.get(), m_listenFd), m_idleFd(open("/dev/null", O_RDONLY | O_CLOEXEC))
 {
     if(m_listenFd < 0)
     {
@@ -27,12 +27,14 @@ Acceptor::Acceptor(EventLoop *eventLoop, const InetAddress &listenAddr, bool reu
     optval = reusePort ? 1 : 0; 
     CHECK_RETZERO(::setsockopt(m_listenFd, SOL_SOCKET, SO_REUSEPORT, &optval, static_cast<socklen_t>(sizeof(optval))));
     Socket::bind(m_listenFd, listenAddr);
-    m_acceptChannel.setReadCallback(std::bind(&Acceptor::handleRead, this));
+    m_channel.setReadCallback(std::bind(&Acceptor::handleRead, this));
 }
 
 Acceptor::~Acceptor()
 {
-    m_acceptChannel.disableAll();
+    LOG_TRACE << "Acceptor fd " << m_listenFd << " disableAll, ~Acceptor.";
+    m_channel.disableAll();
+    m_channel.destory();
     close(m_idleFd);
     close(m_listenFd);
 }
@@ -40,7 +42,8 @@ Acceptor::~Acceptor()
 void Acceptor::listen()
 {
     Socket::listen(m_listenFd);
-    m_acceptChannel.enableRead();
+    LOG_TRACE << "Acceptor fd " << m_listenFd << " enableRead, listen.";
+    m_channel.enableRead();
 }
 
 void Acceptor::handleRead()

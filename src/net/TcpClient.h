@@ -14,28 +14,48 @@
 
 namespace ping
 {
+
+using std::placeholders::_1;
+using std::placeholders::_2;
+using std::placeholders::_3;
+
 class TcpClient: Noncopyable
 {
 public:
-    TcpClient(EventLoop *eventLoop, const InetAddress &serverAddr, const string &name);
+    using ConnectorPtr = std::unique_ptr<Connector>;
+
+    TcpClient(const InetAddress &serverAddr, const string &name = "", 
+        EventLoopPtr eventLoop = nullptr, bool reconnect = true);
     ~TcpClient();
 
-    void connect(bool reconnect = true);
+    void connect();
     void disconnect();
 
-    void send();
+    void send(const string &msg);
+
+    void setConnectCallback(const ConnectCallback &cb) { m_connectCallback = cb; }
+    void setMessageCallback(const MessageCallback &cb) { m_messageCallback = cb; }
+    void setWriteCompleteCallback(const WriteCompleteCallback &cb) { m_writeCompleteCallback = cb; }
+    void setDisconnectCallback(const DisconnectCallback &cb) { m_disconnectCallback = cb; }
+
 
 private:
     void newConnection(int sockfd, const InetAddress &serverAddr);
-    void disconnection(const ConnectionPtr &conn);
+    void closeConnection(const ConnectionPtr &conn);
 
 private:
-    bool m_reconnect; // 自动重连
     const string m_name;
-    Connector m_connector;
-    EventLoop *m_eventLoop;
+    bool m_connect;
+    const bool m_reconnect; // 自动重连
+    const bool m_commBaseloop;
+    ConnectorPtr m_connector;
+    EventLoopPtr m_eventLoop;
     ConnectionPtr m_connection;
 
+    ConnectCallback m_connectCallback;
+    MessageCallback m_messageCallback;
+    DisconnectCallback m_disconnectCallback;
+    WriteCompleteCallback m_writeCompleteCallback;
 };
 
 }

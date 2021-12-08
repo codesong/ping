@@ -6,6 +6,7 @@
 *************************************************************************/
 
 #include <poll.h>
+#include "../Log.h"
 #include "Channel.h"
 #include "EventLoop.h"
 
@@ -24,8 +25,15 @@ Channel::Channel(EventLoop *eventLoop, int fd)
 
 Channel::~Channel()
 {
+    destory();
+}
+
+void Channel::destory()
+{
     if(m_added)
     {
+        m_added = false;
+        LOG_TRACE << __FUNCTION__ << " del fd " << m_fd; 
         m_eventLoop->delChannel(this);
     }
 }
@@ -35,39 +43,46 @@ void Channel::update()
     if(!m_added)
     {
         m_added = true;
+        LOG_TRACE << __FUNCTION__ << " add fd " << m_fd; 
         m_eventLoop->addChannel(this);
     }else
     {
+        LOG_TRACE << __FUNCTION__ << " mod fd " << m_fd; 
         m_eventLoop->updateChannel(this);
     }
 }
 
 void Channel::enableRead()
 {
+    LOG_TRACE << __FUNCTION__ << " fd " << m_fd; 
     m_events |= KReadEvent;    
     update();
 }
 
 void Channel::disableRead()
 {
+    LOG_TRACE << __FUNCTION__ << " fd " << m_fd; 
     m_events &= ~KReadEvent;    
     update();
 }
 
 void Channel::enableWrite()
 {
+    LOG_TRACE << __FUNCTION__ << " fd " << m_fd; 
     m_events |= KWriteEvent;    
     update();
 }
 
 void Channel::disableWrite()
 {
+    LOG_TRACE << __FUNCTION__ << " fd " << m_fd; 
     m_events &= ~KWriteEvent;    
     update();
 }
 
 void Channel::enableAll()
 {
+    LOG_TRACE << __FUNCTION__ << " fd " << m_fd; 
     m_events |= KReadEvent;
     m_events |= KWriteEvent;
     update();
@@ -75,6 +90,7 @@ void Channel::enableAll()
 
 void Channel::disableAll()
 {
+    LOG_TRACE << __FUNCTION__ << " fd " << m_fd; 
     m_events = KNoneEvent;
     update();
 }

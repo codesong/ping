@@ -37,7 +37,6 @@ class Connection: Noncopyable, public std::enable_shared_from_this<Connection>
 {
 public:
     using ChannelPtr = std::unique_ptr<Channel>;
-    using EventLoopPtr = std::shared_ptr<EventLoop>;
 
     Connection(EventLoopPtr eventLoop, const string &name, int sockfd, 
             const InetAddress &localAddr, const InetAddress &peerAddr);
@@ -45,6 +44,9 @@ public:
 
     void connected();
     void disconnected();
+
+    void shutdown(); // 关闭写端
+    void close();
     
     void setCloseCallback(const CloseCallback &cb) { m_closeCallback = cb; }
     void setConnectCallback(const ConnectCallback &cb) { m_connectCallback = cb; }
@@ -66,15 +68,27 @@ public:
     void send(Buffer &message);
     void send(const string_view &message);
     void send(const void *data, int len);
-    void sendInLoop(const void *data, size_t len);
 
 private:
+    void realClose();
+    void realShutdown();
+    void realSend(const void *data, size_t len);
+
     void handleRead(const Timestamp &time);
     void handleWrite(const Timestamp &time);
     void handleClose(const Timestamp &time);
     void handleError(const Timestamp &time);
 
 private:
+    enum State
+    {
+        KDisconnected,
+        KConnecting,
+        KConnected,
+        KDisconnecting,
+    };
+
+    State m_state;
     const int m_sockfd;
     const string m_name;
     ChannelPtr m_channel;
