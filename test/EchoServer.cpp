@@ -26,18 +26,18 @@ public:
     void start() { m_server.start(); }
 
 private:
-    void onConnected(const ConnectionPtr conn)
+    void onConnected(const ConnectionPtr &conn)
     {
         LOG_TRACE << conn->peerAddr().ipPort() << " is UP.";
         LOG_INFO << conn->connectionInfo();
     }
 
-    void onDisconnected(const ConnectionPtr conn)
+    void onDisconnected(const ConnectionPtr &conn)
     {
         LOG_TRACE << conn->peerAddr().ipPort() << " is DOWN.";
     }
 
-    void onMessage(const ConnectionPtr conn, Buffer &buf, const Timestamp &recvTime)
+    void onMessage(const ConnectionPtr &conn, Buffer &buf, const Timestamp &recvTime)
     {
         string msg(buf.readAll());
         LOG_INFO << "recv " << msg;

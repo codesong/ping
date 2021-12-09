@@ -85,7 +85,8 @@ void EPoll::delChannel(Channel *channel)
     int ret = ::epoll_ctl(m_epollfd, EPOLL_CTL_DEL, channel->fd(), &event); 
     if(ret < 0)
     {
-        LOG_ERROR << "epoll_ctl del fd " << channel->fd() << " error";
+        int errorNo = Socket::socketError(channel->fd());
+        LOG_ERROR << "epoll_ctl del fd " << channel->fd() << " error: " << strerror(errorNo);
     }
 }
 

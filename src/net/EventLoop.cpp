@@ -47,7 +47,6 @@ EventLoop::~EventLoop()
     LOG_DEBUG << "EventLoop " << this << " of thread " << m_threadId << " destruct in thread " << Util::currThreadId();
     m_wakeupChannel->disableAll();
     m_wakeupChannel->destory();
-    m_wakeupChannel.reset();
     ::close(m_wakeupFd);
     t_existEventLoop = false;
 }

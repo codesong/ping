@@ -21,16 +21,19 @@ Connection::Connection(EventLoopPtr eventLoop, const string &name, int sockfd,
             const InetAddress &localAddr, const InetAddress &peerAddr)
     : m_sockfd(sockfd), m_localAddr(localAddr), m_peerAddr(peerAddr), m_eventLoop(eventLoop)
 {
-    m_channel = std::make_unique<Channel>(eventLoop.get(), sockfd);
+    m_channel = std::make_unique<Channel>(eventLoop.get(), m_sockfd);
     m_channel->setReadCallback(std::bind(&Connection::handleRead, this, _1));
     m_channel->setWriteCallback(std::bind(&Connection::handleWrite, this, _1));
     m_channel->setCloseCallback(std::bind(&Connection::handleClose, this, _1));
     m_channel->setErrorCallback(std::bind(&Connection::handleError, this, _1));
+    LOG_TRACE << "Connection construct at " << this << " fd " << m_sockfd;
+    int optval = 1; // TCP层心跳 TODO: 应用层心跳
+    CHECK_RETZERO(::setsockopt(m_sockfd, SOL_SOCKET, SO_KEEPALIVE, &optval, static_cast<socklen_t>(sizeof(optval))));
 }
 
 Connection::~Connection()
 {
-
+    LOG_TRACE << "Connection destruct at " << this << " fd " << m_sockfd;
 }
 
 void Connection::connected()
@@ -45,6 +48,7 @@ void Connection::connected()
 void Connection::disconnected()
 {
     m_eventLoop->checkThread();
+    LOG_TRACE <<  "Connection fd " << m_sockfd << " disconnected.";
     if(KConnected == m_state)
     {
         m_state = KDisconnected;
@@ -52,12 +56,14 @@ void Connection::disconnected()
         m_channel->disableAll();
         m_connectCallback(shared_from_this());
     }
+    m_channel->destory();
 }
 
 void Connection::shutdown()
 {
     if(KConnected == m_state)
     {
+        LOG_TRACE << "Connection " << __FUNCTION__;
         m_state = KDisconnecting;
         m_eventLoop->runInLoop(std::bind(&Connection::realShutdown, this));
     }
@@ -68,6 +74,7 @@ void Connection::realShutdown()
     m_eventLoop->checkThread();
     if(!m_channel->isWriting())
     {
+        LOG_TRACE << "Connection " << __FUNCTION__;
         ::shutdown(m_sockfd, SHUT_WR);
     }
 }
@@ -77,6 +84,7 @@ void Connection::close()
     if(KConnected == m_state || KDisconnecting == m_state)
     {
         m_state = KDisconnecting;
+        LOG_TRACE << "Connection " << __FUNCTION__;
         m_eventLoop->runInLoop(std::bind(&Connection::realClose, this));
     }
 }
@@ -84,9 +92,10 @@ void Connection::close()
 void Connection::realClose()
 {
     m_eventLoop->checkThread();
-    if(KDisconnecting == m_state)
+    if(KConnected == m_state || KDisconnecting == m_state)
     {
-        Socket::close(m_sockfd);
+        LOG_TRACE << "Connection " << __FUNCTION__;
+        handleClose(Util::currTime());
     }
 }
 

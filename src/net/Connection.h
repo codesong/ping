@@ -23,12 +23,12 @@ class EventLoop;
 class Connection;
 
 using ConnectionPtr = std::shared_ptr<Connection>;
-using CloseCallback = std::function<void (const ConnectionPtr)>;
-using ConnectCallback = std::function<void (const ConnectionPtr)>;
-using DisconnectCallback = std::function<void (const ConnectionPtr)>;
-using WriteCompleteCallback = std::function<void (const ConnectionPtr)>;
-using HighWaterMarkCallback = std::function<void (const ConnectionPtr)>;
-using MessageCallback = std::function<void (const ConnectionPtr, Buffer &buffer, const Timestamp &recvTime)>;
+using CloseCallback = std::function<void (const ConnectionPtr &conn)>;
+using ConnectCallback = std::function<void (const ConnectionPtr &conn)>;
+using DisconnectCallback = std::function<void (const ConnectionPtr &conn)>;
+using WriteCompleteCallback = std::function<void (const ConnectionPtr &conn)>;
+using HighWaterMarkCallback = std::function<void (const ConnectionPtr &conn)>;
+using MessageCallback = std::function<void (const ConnectionPtr &conn, Buffer &buffer, const Timestamp &recvTime)>;
 
 using std::string;
 using std::string_view;

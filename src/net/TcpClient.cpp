@@ -26,6 +26,7 @@ TcpClient::~TcpClient()
 {
     if(m_connection)
     {
+        m_reconnect = false; // 关闭重连
         m_connection->close();
     }
 }
@@ -80,6 +81,8 @@ void TcpClient::newConnection(int sockfd, const InetAddress &serverAddr)
 void TcpClient::closeConnection(const ConnectionPtr &conn)
 {
     LOG_TRACE << "TcpClient close connection.";
+    m_eventLoop->checkThread();
+    m_connection.reset();
     m_eventLoop->runInLoop(std::bind(&Connection::disconnected, conn));
     if(m_reconnect && m_connect)
     {

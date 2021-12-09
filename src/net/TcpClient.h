@@ -46,7 +46,7 @@ private:
 private:
     const string m_name;
     bool m_connect;
-    const bool m_reconnect; // 自动重连
+    atomic<bool> m_reconnect; // 自动重连
     const bool m_commBaseloop;
     ConnectorPtr m_connector;
     EventLoopPtr m_eventLoop;

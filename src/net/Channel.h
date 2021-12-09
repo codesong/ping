@@ -16,6 +16,7 @@
 namespace ping
 {
 
+// 不管理sockfd的生命周期，析构时不会关闭sockfd，只会不再关注sockfd的事件
 class EventLoop;
 class Channel: Noncopyable
 {

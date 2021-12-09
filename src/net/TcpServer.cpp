@@ -22,7 +22,14 @@ TcpServer::TcpServer(const InetAddress &serverAddr, const string &name,
 
 TcpServer::~TcpServer()
 {
-
+    m_baseLoop->checkThread();
+    LOG_TRACE << "TcpServer::~TcpServer destruct.";
+    for(auto &it: m_mapConnection)
+    {
+        ConnectionPtr conn(it.second);
+        it.second.reset();
+        conn->eventLoop()->runInLoop(std::bind(&Connection::disconnected, conn));
+    }
 }
 
 void TcpServer::start()

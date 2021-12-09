@@ -41,7 +41,7 @@ public:
     }
 
 private:
-    void onConnected(const ConnectionPtr conn)
+    void onConnected(const ConnectionPtr& conn)
     {
         LOG_TRACE << conn->localAddr().ipPort() << " connect " 
             << conn->peerAddr().ipPort() << " success.";
@@ -49,7 +49,7 @@ private:
         LOG_INFO << "send msg hello.";
     }
 
-    void onDisconnected(const ConnectionPtr conn)
+    void onDisconnected(const ConnectionPtr& conn)
     {
         LOG_TRACE << conn->localAddr().ipPort() << " disconnect " 
             << conn->peerAddr().ipPort() << ".";
@@ -58,7 +58,7 @@ private:
     void onMessage(const ConnectionPtr &conn, Buffer &buf, const Timestamp &recvTime)
     {
         string msg(buf.readAll());
-        LOG_TRACE << conn->name() << " recv " << msg.size() << " bytes at " << recvTime.toString();
+        LOG_TRACE << conn->name() << " recv " << msg;
         disconnect();
     }
 
